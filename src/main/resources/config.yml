@@ -1,0 +1,46 @@
+﻿# ---------------------------------- #
+#         AnarchyTags Config         #
+# ---------------------------------- #
+# Estilo DisplayTags: TextDisplay virtual via PacketEvents (Folia 26.3)
+# Recarregar: /anarchytags reload
+
+nametags:
+  enabled: true
+
+  # false = o jogador não vê a própria tag acima da cabeça
+  show-self: false
+
+  # Intervalo de atualização (segundos)
+  update-interval: 1
+
+  # Distância máxima (blocos) para ver a tag
+  visibility-distance: 64
+
+  hide-in-spectator: true
+  hide-in-vanish: true
+
+  display:
+    # Uma linha: prefixos (PAPI relacional) + nick. {player} = nome do alvo da tag.
+    lines:
+      - "<white>%luckperms_prefix%{player}"
+      - "%anarchyeconomy_formatted_tab%%anarchyclans_tab%"
+
+    # Padrão do servidor; cada jogador pode mudar em /config → Visual do Nick
+    text-shadow: false
+    see-through: false
+    text-alignment: center
+
+    # default | transparent | hex — padrão do servidor; caixa escura on/off no /config
+    background: default
+
+    billboard: center
+
+    translation:
+      x: 0
+      y: 0.20
+      z: 0
+
+    scale:
+      x: 1
+      y: 1
+      z: 1

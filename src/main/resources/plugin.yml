@@ -1,0 +1,18 @@
+﻿name: AnarchyTags
+version: '${version}'
+description: Nametags em TextDisplay virtual (estilo DisplayTags) com PlaceholderAPI relacional e Folia.
+main: anarchy.minesky.tags.AnarchyTags
+api-version: '26.3'
+folia-supported: true
+authors: [Bruno C.]
+depend: [packetevents, PlaceholderAPI]
+softdepend: [AnarchyCore, AnarchyClans, AnarchyEconomy, AnarchyVanish]
+commands:
+  anarchytags:
+    description: Gerencia as tags do AnarchyTags
+    aliases: [atags]
+    usage: /<command> reload
+permissions:
+  anarchytags.admin:
+    description: Permite recarregar a configuração do AnarchyTags
+    default: op
