@@ -3,6 +3,7 @@ package anarchy.minesky.tags.listener;
 import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.nametags.Nametag;
 import anarchy.minesky.tags.nametags.NametagManager;
+import anarchy.minesky.tags.nametags.PlayerConfigPreferenceWatcher;
 import io.papermc.paper.event.player.PlayerClientLoadedWorldEvent;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -20,10 +21,12 @@ public class PlayerListener implements Listener {
 
     private final AnarchyTags plugin;
     private final NametagManager nametagManager;
+    private final PlayerConfigPreferenceWatcher preferenceWatcher;
 
     public PlayerListener(AnarchyTags plugin) {
         this.plugin = plugin;
         this.nametagManager = plugin.getNametagManager();
+        this.preferenceWatcher = plugin.getPreferenceWatcher();
     }
 
     @EventHandler
@@ -36,6 +39,7 @@ public class PlayerListener implements Listener {
             nametagManager.remove(player);
         }
         nametagManager.create(player);
+        preferenceWatcher.seed(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -44,6 +48,7 @@ public class PlayerListener implements Listener {
             nametagManager.remove(event.getPlayer());
         }
         NametagHandler.clearViewer(event.getPlayer());
+        preferenceWatcher.forget(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

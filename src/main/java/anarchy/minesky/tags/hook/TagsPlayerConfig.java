@@ -50,7 +50,7 @@ public final class TagsPlayerConfig {
         nametagBackground = registry.booleanOption(KEY_NAMETAG_BACKGROUND).orElseGet(() ->
                 registry.registerBooleanOption(plugin,
                         PlayerConfigBooleanOptionSpec.builder(KEY_NAMETAG_BACKGROUND, CATEGORY_NICK)
-                                .label(Component.text("Caixa escura na tag"))
+                                .label(Component.text("Fundo escuro"))
                                 .defaultValue(defaultBackground)
                                 .build()));
 

@@ -11,7 +11,7 @@ import java.util.List;
 public class ClientTextDisplay extends ClientDisplay {
 
     private Component text = Component.empty();
-    private int background = -1;
+    private int background = TextDisplayDefaults.BACKGROUND;
     private int flags;
 
     public ClientTextDisplay(Location location) {
@@ -47,9 +47,8 @@ public class ClientTextDisplay extends ClientDisplay {
     public List<EntityData<?>> getEntityData() {
         List<EntityData<?>> data = super.getEntityData();
         data.add(new EntityData<>(23, EntityDataTypes.ADV_COMPONENT, text));
-        if (background != -1) {
-            data.add(new EntityData<>(25, EntityDataTypes.INT, background));
-        }
+        // Sempre enviar: omitir o índice 25 deixa o cliente com valor antigo (ex.: transparente → default).
+        data.add(new EntityData<>(25, EntityDataTypes.INT, background));
         data.add(new EntityData<>(27, EntityDataTypes.BYTE, (byte) flags));
         return data;
     }

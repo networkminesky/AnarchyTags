@@ -3,6 +3,7 @@ package anarchy.minesky.tags.nametags;
 import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.config.NametagConfig;
 import anarchy.minesky.tags.entities.ClientTextDisplay;
+import anarchy.minesky.tags.entities.TextDisplayDefaults;
 import anarchy.minesky.tags.hook.TagsPlayerConfig;
 import anarchy.minesky.tags.util.VanishUtil;
 import anarchy.minesky.tags.utils.ComponentUtils;
@@ -197,7 +198,7 @@ public class Nametag {
 
     private static int resolveBackground(String background) {
         if (background == null || background.equalsIgnoreCase("default")) {
-            return -1;
+            return TextDisplayDefaults.BACKGROUND;
         }
         if (background.equalsIgnoreCase("transparent")) {
             return 0;

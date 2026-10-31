@@ -30,7 +30,7 @@ nametags:
     see-through: false
     text-alignment: center
 
-    # default | transparent | hex — padrão do servidor; caixa escura on/off no /config
+    # default | transparent | hex — padrão do servidor; fundo escuro on/off no /config
     background: default
 
     billboard: center

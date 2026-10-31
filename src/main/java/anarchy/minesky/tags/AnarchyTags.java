@@ -8,6 +8,7 @@ import anarchy.minesky.tags.listener.PlayerListener;
 import anarchy.minesky.tags.listener.VanishListener;
 import anarchy.minesky.tags.nametags.NametagManager;
 import anarchy.minesky.tags.nametags.NametagScheduler;
+import anarchy.minesky.tags.nametags.PlayerConfigPreferenceWatcher;
 import anarchy.minesky.tags.utils.helpers.DependencyHelper;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,6 +25,7 @@ public final class AnarchyTags extends JavaPlugin {
     private AnarchyTagsConfig config;
     private NametagManager nametagManager;
     private NametagScheduler nametagScheduler;
+    private PlayerConfigPreferenceWatcher preferenceWatcher;
 
     @Override
     public void onEnable() {
@@ -35,7 +37,9 @@ public final class AnarchyTags extends JavaPlugin {
 
         nametagManager = new NametagManager();
         nametagScheduler = new NametagScheduler(this);
+        preferenceWatcher = new PlayerConfigPreferenceWatcher(this, nametagManager);
         nametagScheduler.start();
+        preferenceWatcher.start();
 
         getServer().getServicesManager().register(
                 AnarchyTagsAPI.class,
@@ -79,6 +83,9 @@ public final class AnarchyTags extends JavaPlugin {
         if (nametagScheduler != null) {
             nametagScheduler.stop();
         }
+        if (preferenceWatcher != null) {
+            preferenceWatcher.stop();
+        }
         if (nametagManager != null) {
             nametagManager.removeAll();
         }
@@ -91,10 +98,12 @@ public final class AnarchyTags extends JavaPlugin {
             config.reload();
             TagsPlayerConfig.register(this, config.getNametagConfig());
             nametagScheduler.stop();
+            preferenceWatcher.stop();
             nametagManager.removeAll();
             if (config.getNametagConfig().isEnabled()) {
                 nametagManager.createAll();
                 nametagScheduler.start();
+                preferenceWatcher.start();
             }
             return true;
         } catch (Exception e) {
@@ -117,5 +126,9 @@ public final class AnarchyTags extends JavaPlugin {
 
     public NametagManager getNametagManager() {
         return nametagManager;
+    }
+
+    public PlayerConfigPreferenceWatcher getPreferenceWatcher() {
+        return preferenceWatcher;
     }
 }
