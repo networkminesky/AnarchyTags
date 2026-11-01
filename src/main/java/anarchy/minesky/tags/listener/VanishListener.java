@@ -34,7 +34,7 @@ public class VanishListener implements Listener {
         player.getScheduler().run(plugin, task -> {
             Nametag nametag = nametagManager.get(player);
             if (nametag != null) {
-                nametag.updateVisibilityForAll();
+                nametag.updateVisibility(48);
             }
         }, null);
     }

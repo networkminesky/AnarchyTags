@@ -10,11 +10,17 @@ nametags:
   # false = o jogador não vê a própria tag acima da cabeça
   show-self: false
 
-  # Intervalo de atualização (segundos)
-  update-interval: 1
+  # Intervalo de atualização do texto (segundos). Valores maiores = menos pacotes.
+  update-interval: 5
 
   # Distância máxima (blocos) para ver a tag
   visibility-distance: 64
+
+  # Legado: atraso extra antes de tags/tab (0 = imediato após carregar o mundo).
+  join-delay-seconds: 0
+
+  # Ticks após carregar o mundo antes do init (0 = imediato).
+  join-init-delay-ticks: 0
 
   hide-in-spectator: true
   hide-in-vanish: true
@@ -22,7 +28,7 @@ nametags:
   display:
     # Uma linha: prefixos (PAPI relacional) + nick. {player} = nome do alvo da tag.
     lines:
-      - "<white>%luckperms_prefix%{player}"
+      - "{voiceicon}<white>%luckperms_prefix%{player}"
       - "%anarchyeconomy_formatted_tab%%anarchyclans_tab%"
 
     # Padrão do servidor; cada jogador pode mudar em /config → Visual do Nick
@@ -44,3 +50,56 @@ nametags:
       x: 1
       y: 1
       z: 1
+
+# Ícones de voz (API Simple Voice Chat + {voiceicon} / %atvc_%). TextDisplay não usa as texturas do mod no cliente.
+voice-chat:
+  enabled: true
+  # Opcional: envia pack próprio com ícones parecidos (não é o asset do mod).
+  send-resource-pack: false
+  # true = glifos + send-resource-pack; false = emojis abaixo (padrão)
+  mod-glyphs: false
+  use-placeholder: false
+  placeholder: "%atvc_%"
+  talk-timeout-ms: 350
+  # MiniMessage <head_url:...> via AnarchyCore (PlayerHead object no TextDisplay)
+  talking: "<head_url:http://textures.minecraft.net/texture/62e4c4a61e4057e8422a73948be13a3272c286185abde852a6f616a74325e358> "
+  whispering: "🔉 "
+  quiet: ""
+  disabled: "❌ "
+  not-installed: ""
+  glyphs:
+    talking: "<head_url:http://textures.minecraft.net/texture/62e4c4a61e4057e8422a73948be13a3272c286185abde852a6f616a74325e358> "
+    whispering: "<font:anarchytags:voice_icons>\uE002</font> "
+    quiet: "<font:anarchytags:voice_icons>\uE003</font> "
+    disabled: "<font:anarchytags:voice_icons>\uE004</font> "
+    not-installed: "<font:anarchytags:voice_icons>\uE005</font> "
+
+# Ordem do tab, no mesmo estilo do sorting-types do TAB.
+# O jogador só pode estar em um time: este plugin esconde a nametag vanilla e ordena o tab.
+# Recarregar: /anarchytags reload
+sorting:
+  enabled: true
+
+  # Segundos entre recálculos de cargo. Sem pacote se nada mudou.
+  update-interval: 10
+
+  # Pares viewer→alvo aplicados por tick do scheduler (~1/s com 20 ticks).
+  sync-per-tick: 4
+
+  # true = prefixo/sufixo no tab via PAPI (mais pesado). false = só ordena (prefixo na nametag 3D).
+  apply-prefix: false
+
+  # Prefixo/sufixo do tab. Vazio = não escreve nada. LuckPerms por padrão.
+  prefix: "%luckperms_prefix%"
+  suffix: "%luckperms_suffix%"
+
+  # Primeiro critério manda mais. Tipos:
+  #   PLACEHOLDER_HIGH_TO_LOW:%luckperms_highest_group_weight%  (peso maior primeiro)
+  #   PLACEHOLDER_LOW_TO_HIGH:%placeholder%
+  #   PLACEHOLDER_A_TO_Z:%player%
+  #   PLACEHOLDER_Z_TO_A:%player%
+  #   GROUPS:dono,diretor,admin,mod,helper,vip,default
+  #     (primary group do LuckPerms, do cargo mais alto ao mais baixo)
+  types:
+    - "PLACEHOLDER_HIGH_TO_LOW:%luckperms_highest_group_weight%"
+    - "PLACEHOLDER_A_TO_Z:%player%"

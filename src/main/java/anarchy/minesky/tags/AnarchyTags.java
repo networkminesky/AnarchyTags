@@ -2,13 +2,19 @@ package anarchy.minesky.tags;
 
 import anarchy.minesky.tags.api.AnarchyTagsAPI;
 import anarchy.minesky.tags.command.AnarchyTagsCommand;
+import anarchy.minesky.tags.command.EsconderNickCommand;
 import anarchy.minesky.tags.config.AnarchyTagsConfig;
 import anarchy.minesky.tags.hook.TagsPlayerConfig;
+import anarchy.minesky.tags.hook.VoiceChatBridge;
+import anarchy.minesky.tags.hook.VoicePlaceholderHook;
+import anarchy.minesky.tags.voice.VoiceResourcePackManager;
 import anarchy.minesky.tags.listener.PlayerListener;
 import anarchy.minesky.tags.listener.VanishListener;
+import anarchy.minesky.tags.nick.NickHideManager;
 import anarchy.minesky.tags.nametags.NametagManager;
 import anarchy.minesky.tags.nametags.NametagScheduler;
 import anarchy.minesky.tags.nametags.PlayerConfigPreferenceWatcher;
+import anarchy.minesky.tags.sorting.TabOrder;
 import anarchy.minesky.tags.utils.helpers.DependencyHelper;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,9 +29,12 @@ public final class AnarchyTags extends JavaPlugin {
     private static AnarchyTags instance;
 
     private AnarchyTagsConfig config;
+    private TabOrder tabOrder;
     private NametagManager nametagManager;
     private NametagScheduler nametagScheduler;
     private PlayerConfigPreferenceWatcher preferenceWatcher;
+    private NickHideManager nickHideManager;
+    private VoiceResourcePackManager voiceResourcePackManager;
 
     @Override
     public void onEnable() {
@@ -35,9 +44,15 @@ public final class AnarchyTags extends JavaPlugin {
         config = new AnarchyTagsConfig(this);
         config.load();
 
-        nametagManager = new NametagManager();
+        tabOrder = new TabOrder(this);
+        nametagManager = new NametagManager(tabOrder);
         nametagScheduler = new NametagScheduler(this);
         preferenceWatcher = new PlayerConfigPreferenceWatcher(this, nametagManager);
+        nickHideManager = new NickHideManager(this);
+        voiceResourcePackManager = new VoiceResourcePackManager(this);
+        voiceResourcePackManager.prepare();
+        voiceResourcePackManager.registerEvents();
+        VoicePlaceholderHook.register();
         nametagScheduler.start();
         preferenceWatcher.start();
 
@@ -59,18 +74,33 @@ public final class AnarchyTags extends JavaPlugin {
             getCommand("anarchytags").setTabCompleter(command);
         }
 
+        EsconderNickCommand esconderNick = new EsconderNickCommand(this);
+        if (getCommand("escondernick") != null) {
+            getCommand("escondernick").setExecutor(esconderNick);
+            getCommand("escondernick").setTabCompleter(esconderNick);
+        }
+
         DependencyHelper.load();
+        VoiceChatBridge.scheduleRegister(this);
 
         getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler
             public void onPluginEnable(PluginEnableEvent event) {
                 String name = event.getPlugin().getName();
+                if ("PlaceholderAPI".equals(name)) {
+                    VoicePlaceholderHook.register();
+                }
+                if ("voicechat".equalsIgnoreCase(name) || "VoiceChatPlaceholders".equalsIgnoreCase(name)) {
+                    VoiceChatBridge.tryRegister(AnarchyTags.this);
+                }
                 if ("PlaceholderAPI".equals(name)
                         || "AnarchyEconomy".equals(name)
-                        || "AnarchyClans".equals(name)) {
+                        || "AnarchyClans".equals(name)
+                        || "LuckPerms".equals(name)) {
                     for (var nametag : nametagManager.getAll()) {
-                        nametag.updateVisibilityForAll();
+                        nametag.refreshAllViewerTextsIfChanged();
                     }
+                    tabOrder.recomputeChangedAsync();
                 }
             }
         }, this);
@@ -89,6 +119,8 @@ public final class AnarchyTags extends JavaPlugin {
         if (nametagManager != null) {
             nametagManager.removeAll();
         }
+        VoiceChatBridge.shutdown();
+        VoicePlaceholderHook.unregister();
         getLogger().info("AnarchyTags desativado.");
     }
 
@@ -96,6 +128,7 @@ public final class AnarchyTags extends JavaPlugin {
         try {
             reloadConfig();
             config.reload();
+            voiceResourcePackManager.prepare();
             TagsPlayerConfig.register(this, config.getNametagConfig());
             nametagScheduler.stop();
             preferenceWatcher.stop();
@@ -130,5 +163,9 @@ public final class AnarchyTags extends JavaPlugin {
 
     public PlayerConfigPreferenceWatcher getPreferenceWatcher() {
         return preferenceWatcher;
+    }
+
+    public NickHideManager getNickHideManager() {
+        return nickHideManager;
     }
 }

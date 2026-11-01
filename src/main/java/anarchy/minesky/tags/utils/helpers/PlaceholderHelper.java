@@ -20,6 +20,13 @@ public final class PlaceholderHelper {
         return Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
     }
 
+    public static String applyTarget(Player target, String text) {
+        if (text == null || text.isBlank() || !isAvailable()) {
+            return text == null ? "" : text;
+        }
+        return PlaceholderAPI.setPlaceholders(target, text);
+    }
+
     /**
      * Expansions {@link Relational} do Anarchy (economy/clãs) exigem sintaxe {@code %rel_<id>_<params>%}
      * no PAPI 2.12+. Aceita também {@code %anarchyeconomy_formatted_tab%} na config e converte automaticamente.

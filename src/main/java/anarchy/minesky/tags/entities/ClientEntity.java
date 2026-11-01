@@ -1,5 +1,6 @@
 package anarchy.minesky.tags.entities;
 
+import anarchy.minesky.tags.debug.PacketMetrics;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
@@ -72,20 +73,36 @@ public class ClientEntity {
                 0,
                 Optional.empty()
         );
-        sendPacket(packet, viewer);
+        sendDisplayPacket(packet, viewer, PacketKind.SPAWN);
     }
 
     public void update(Player viewer) {
         WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(entityId, getEntityData());
-        sendPacket(packet, viewer);
+        sendDisplayPacket(packet, viewer, PacketKind.METADATA);
     }
 
     public void despawn(Player viewer) {
         if (!spawnedFor.remove(viewer.getUniqueId())) {
             return;
         }
-        WrapperPlayServerDestroyEntities packet = new WrapperPlayServerDestroyEntities(new int[]{entityId});
-        sendPacket(packet, viewer);
+        sendDestroy(viewer);
+    }
+
+    public void forget(UUID viewerId) {
+        spawnedFor.remove(viewerId);
+    }
+
+    public void destroy(Player viewer) {
+        spawnedFor.remove(viewer.getUniqueId());
+        sendDestroy(viewer);
+    }
+
+    public int getEntityId() {
+        return entityId;
+    }
+
+    public int getSpawnedViewerCount() {
+        return spawnedFor.size();
     }
 
     public boolean isSpawnedFor(Player viewer) {
@@ -93,11 +110,13 @@ public class ClientEntity {
     }
 
     public void mount(Entity entity, Player viewer) {
-        WrapperPlayServerSetPassengers packet = new WrapperPlayServerSetPassengers(
-                entity.getEntityId(),
-                new int[]{entityId}
-        );
-        sendPacket(packet, viewer);
+        java.util.List<Entity> passengers = entity.getPassengers();
+        int[] ids = new int[passengers.size() + 1];
+        for (int i = 0; i < passengers.size(); i++) {
+            ids[i] = passengers.get(i).getEntityId();
+        }
+        ids[passengers.size()] = entityId;
+        sendDisplayPacket(new WrapperPlayServerSetPassengers(entity.getEntityId(), ids), viewer, PacketKind.MOUNT);
     }
 
     public void teleportFor(Player viewer) {
@@ -108,10 +127,30 @@ public class ClientEntity {
                 location.getPitch(),
                 true
         );
-        sendPacket(packet, viewer);
+        sendDisplayPacket(packet, viewer, PacketKind.TELEPORT);
+    }
+
+    private void sendDestroy(Player viewer) {
+        sendDisplayPacket(new WrapperPlayServerDestroyEntities(new int[]{entityId}), viewer, PacketKind.DESTROY);
+    }
+
+    private enum PacketKind {
+        SPAWN, METADATA, DESTROY, MOUNT, TELEPORT, OTHER
+    }
+
+    private void sendDisplayPacket(PacketWrapper<?> packet, Player player, PacketKind kind) {
+        switch (kind) {
+            case SPAWN -> PacketMetrics.recordDisplaySpawn();
+            case METADATA -> PacketMetrics.recordDisplayMetadata();
+            case DESTROY -> PacketMetrics.recordDisplayDestroy();
+            case MOUNT -> PacketMetrics.recordDisplayMount();
+            case TELEPORT -> PacketMetrics.recordDisplayTeleport();
+            case OTHER -> { }
+        }
+        PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
     }
 
     private void sendPacket(PacketWrapper<?> packet, Player player) {
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+        sendDisplayPacket(packet, player, PacketKind.OTHER);
     }
 }

@@ -9,6 +9,7 @@ repositories {
     maven("https://jitpack.io")
     maven("https://repo.codemc.io/repository/maven-releases/")
     maven("https://repo.codemc.io/repository/maven-snapshots/")
+    maven("https://maven.maxhenkel.de/repository/public")
 }
 
 dependencies {
@@ -17,6 +18,8 @@ dependencies {
     compileOnly("com.github.networkminesky:AnarchyCore:1.1.0")
     compileOnly("com.github.networkminesky:AnarchyVanish:1.0.0")
     compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
+    compileOnly("net.luckperms:api:5.4")
+    compileOnly("de.maxhenkel.voicechat:voicechat-api:2.6.25")
 }
 
 java {

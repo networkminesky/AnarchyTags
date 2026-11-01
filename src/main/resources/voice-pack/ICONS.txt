@@ -1,0 +1,14 @@
+Ícones estilo Simple Voice Chat (pacote white)
+
+Substitua os PNG desta pasta pelos do mod (mesma aparência do HUD):
+
+1. Abra o jar do mod Simple Voice Chat (cliente ou plugins/voicechat no servidor).
+2. Copie de assets/voicechat/textures/icons/white/:
+   - microphone.png      -> talking.png
+   - microphone_whisper.png -> whispering.png
+   - speaker.png         -> quiet.png
+   - microphone_off.png  -> disabled.png
+   - disconnected.png    -> not_installed.png
+3. /anarchytags reload (regera o zip do pack) ou reinicie o servidor.
+
+Os placeholders internos %atvc_% e {voiceicon} usam os glifos E001–E005 deste pack.

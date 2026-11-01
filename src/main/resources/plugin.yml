@@ -5,14 +5,26 @@ main: anarchy.minesky.tags.AnarchyTags
 api-version: '26.3'
 folia-supported: true
 authors: [Bruno C.]
-depend: [packetevents, PlaceholderAPI]
-softdepend: [AnarchyCore, AnarchyClans, AnarchyEconomy, AnarchyVanish]
+depend: [packetevents, PlaceholderAPI, voicechat]
+softdepend: [AnarchyCore, AnarchyClans, AnarchyEconomy, AnarchyVanish, LuckPerms]
 commands:
   anarchytags:
     description: Gerencia as tags do AnarchyTags
     aliases: [atags]
-    usage: /<command> reload
+    usage: /<command> reload|debug
+  escondernick:
+    description: Modos de esconder nick (ofuscado, admin, invisível)
+    usage: /<command> [normal|ofuscado|admin|invisivel]
 permissions:
   anarchytags.admin:
     description: Permite recarregar a configuração do AnarchyTags
+    default: op
+  anarchytags.escondernick:
+    description: Permite usar /escondernick (ofuscado e modo admin)
+    default: true
+  anarchytags.escondernick.invisivel:
+    description: Permite modo totalmente invisível no /escondernick
+    default: op
+  anarchytags.escondernick.ver:
+    description: Vê nick em &8 de quem usa escondernick (modo admin)
     default: op

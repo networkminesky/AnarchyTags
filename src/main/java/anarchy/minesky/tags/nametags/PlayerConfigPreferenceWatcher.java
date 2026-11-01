@@ -46,7 +46,7 @@ public final class PlayerConfigPreferenceWatcher {
             }
 
             lastSnapshot.keySet().removeIf(uuid -> Bukkit.getPlayer(uuid) == null);
-        }, 5L, 5L);
+        }, 40L, 40L);
     }
 
     public void stop() {

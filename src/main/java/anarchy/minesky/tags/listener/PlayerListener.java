@@ -13,6 +13,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
+import anarchy.minesky.tags.util.FoliaTasks;
+import anarchy.minesky.tags.hook.VoiceChatBridge;
 import anarchy.minesky.tags.utils.handlers.NametagHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -35,20 +37,21 @@ public class PlayerListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (nametagManager.get(player) != null) {
-            nametagManager.remove(player);
-        }
-        nametagManager.create(player);
+        VoiceChatBridge.onPlayerJoin(player);
+        nametagManager.scheduleJoin(player);
         preferenceWatcher.seed(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
+        nametagManager.clearViewerReady(event.getPlayer());
         if (plugin.config().getNametagConfig().isEnabled()) {
             nametagManager.remove(event.getPlayer());
         }
         NametagHandler.clearViewer(event.getPlayer());
         preferenceWatcher.forget(event.getPlayer());
+        plugin.getNickHideManager().onQuit(event.getPlayer());
+        VoiceChatBridge.clearPlayer(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -58,7 +61,7 @@ public class PlayerListener implements Listener {
         }
         Nametag nametag = nametagManager.get(event.getEntity());
         if (nametag != null) {
-            nametag.hideForAll();
+            FoliaTasks.runOnEntity(plugin, event.getEntity(), nametag::hideForAll);
         }
     }
 
@@ -71,8 +74,10 @@ public class PlayerListener implements Listener {
         if (nametag == null) {
             return;
         }
-        nametag.teleportForAll();
-        nametag.updateVisibilityForAll();
+        FoliaTasks.runOnEntity(plugin, event.getPlayer(), () -> {
+            nametag.syncPositionForViewers();
+            nametag.updateVisibility(8);
+        });
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -84,8 +89,10 @@ public class PlayerListener implements Listener {
         if (nametag == null) {
             return;
         }
-        nametag.hideForAll();
-        nametag.updateVisibilityForAll();
+        FoliaTasks.runOnEntity(plugin, event.getPlayer(), () -> {
+            nametag.hideForAll();
+            nametag.updateVisibilityForAll();
+        });
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -97,10 +104,12 @@ public class PlayerListener implements Listener {
         if (nametag == null) {
             return;
         }
-        if (event.getNewGameMode() == GameMode.SPECTATOR) {
-            nametag.hideForAll();
-        } else if (event.getPlayer().getPreviousGameMode() == GameMode.SPECTATOR) {
-            nametag.updateVisibilityForAll();
-        }
+        FoliaTasks.runOnEntity(plugin, event.getPlayer(), () -> {
+            if (event.getNewGameMode() == GameMode.SPECTATOR) {
+                nametag.hideForAll();
+            } else if (event.getPlayer().getPreviousGameMode() == GameMode.SPECTATOR) {
+                nametag.updateVisibilityForAll();
+            }
+        });
     }
 }
