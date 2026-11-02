@@ -42,6 +42,7 @@ public class Nametag {
     private final int visibilityDistance;
     private final boolean hideInSpectator;
     private final boolean hideInVanish;
+    private volatile boolean sneaking;
 
     public Nametag(NametagManager manager, Player player) {
         this.plugin = AnarchyTags.getInstance();
@@ -64,7 +65,8 @@ public class Nametag {
         ));
         this.display.setScale(config.getScale());
         this.display.setTextAlignment(config.getTextAlignment());
-        this.display.setSeeThrough(true);
+        this.sneaking = player.isSneaking();
+        this.display.setSeeThrough(!this.sneaking && config.isSeeThrough());
         this.display.setBillboard(config.getBillboard());
     }
 
@@ -253,21 +255,21 @@ public class Nametag {
         mountHash.remove(viewer.getUniqueId());
     }
 
-    /**
-     * Atualiza o visual e sincroniza a montagem.
-     * NUNCA envia teleportFor() pois a tag é passageira (passenger).
-     */
     public void update(Player viewer) {
         if (viewer == null || !viewer.isOnline()) {
             return;
         }
 
         placeAboveHead();
+        // Sincroniza com o estado real do Bukkit como segurança
+        this.sneaking = player.isSneaking();
+
         boolean first = !display.isSpawnedFor(viewer);
 
         if (first) {
             writeVisual(viewer);
-            display.setSeeThrough(true);
+            boolean seeThrough = !sneaking && plugin.config().getNametagConfig().isSeeThrough();
+            display.setSeeThrough(seeThrough);
             display.spawn(viewer);
             display.update(viewer);
             display.mount(player, viewer);
@@ -278,7 +280,8 @@ public class Nametag {
 
         // Se já está spawnado: só envia metadata se o texto ou estilo mudou
         if (writeVisual(viewer)) {
-            display.setSeeThrough(true);
+            boolean seeThrough = !sneaking && plugin.config().getNametagConfig().isSeeThrough();
+            display.setSeeThrough(seeThrough);
             display.update(viewer);
         }
 
@@ -288,6 +291,29 @@ public class Nametag {
         if (lastHash == null || lastHash != currentHash) {
             display.mount(player, viewer);
             mountHash.put(viewer.getUniqueId(), currentHash);
+        }
+    }
+
+    /**
+     * Chamado quando o jogador aperta ou solta o Shift.
+     */
+    public void onSneakToggle(boolean isSneaking) {
+        this.sneaking = isSneaking;
+        updateSeeThrough();
+    }
+
+    /**
+     * Atualiza o see-through e envia o pacote de metadata para quem está vendo a tag.
+     */
+    public void updateSeeThrough() {
+        boolean seeThrough = !sneaking && plugin.config().getNametagConfig().isSeeThrough();
+        display.setSeeThrough(seeThrough);
+
+        for (UUID viewerId : viewers) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null && viewer.isOnline() && display.isSpawnedFor(viewer)) {
+                display.update(viewer);
+            }
         }
     }
 

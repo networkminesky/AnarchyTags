@@ -13,13 +13,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerGameModeChangeEvent;
+import org.bukkit.event.player.*;
 import anarchy.minesky.tags.util.FoliaTasks;
 import anarchy.minesky.tags.hook.VoiceChatBridge;
 import anarchy.minesky.tags.utils.handlers.NametagHandler;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
 
 public class PlayerListener implements Listener {
 
@@ -158,5 +155,21 @@ public class PlayerListener implements Listener {
                 nametag.updateVisibilityForAll();
             }
         });
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
+        if (!plugin.config().getNametagConfig().isEnabled()) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        Nametag nametag = nametagManager.get(player);
+        if (nametag == null) {
+            return;
+        }
+
+        // No Folia, o evento de sneak já roda na thread de região do player
+        nametag.onSneakToggle(event.isSneaking());
     }
 }
