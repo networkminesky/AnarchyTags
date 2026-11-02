@@ -5,6 +5,8 @@ import anarchy.minesky.tags.nametags.Nametag;
 import anarchy.minesky.tags.nametags.NametagManager;
 import anarchy.minesky.tags.nametags.PlayerConfigPreferenceWatcher;
 import io.papermc.paper.event.player.PlayerClientLoadedWorldEvent;
+import io.papermc.paper.event.player.PlayerTrackEntityEvent;
+import io.papermc.paper.event.player.PlayerUntrackEntityEvent;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -42,6 +44,65 @@ public class PlayerListener implements Listener {
         preferenceWatcher.seed(player);
     }
 
+    /**
+     * Disparado quando o jogador começa a ver outro jogador (após RTP, chunk load, etc.)
+     * Essencial para o Folia não perder pacotes de entidades montadas.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerTrackEntity(PlayerTrackEntityEvent event) {
+        if (!plugin.config().getNametagConfig().isEnabled()) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player target)) {
+            return;
+        }
+        Player viewer = event.getPlayer();
+        if (viewer.getUniqueId().equals(target.getUniqueId())) {
+            return;
+        }
+
+        Nametag tag = nametagManager.get(target);
+        if (tag == null) {
+            return;
+        }
+
+        // Executa na thread da região do TARGET com delay de 2 ticks
+        // para dar tempo do cliente do viewer criar a entidade do player (veículo)
+        FoliaTasks.runOnEntityDelayed(plugin, target, () -> {
+            if (!target.isOnline() || !viewer.isOnline()) {
+                return;
+            }
+            if (!target.getWorld().equals(viewer.getWorld())) {
+                return;
+            }
+            long maxDistSq = (long) tag.getVisibilityDistance() * tag.getVisibilityDistance();
+            if (!tag.canShowTo(viewer, maxDistSq)) {
+                return;
+            }
+            // Força reset para garantir que monte limpo
+            tag.hide(viewer);
+            tag.show(viewer);
+        }, 2L);
+    }
+
+    /**
+     * Disparado quando o jogador deixa de ver o outro (descarregou chunk / teleporte).
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerUntrackEntity(PlayerUntrackEntityEvent event) {
+        if (!plugin.config().getNametagConfig().isEnabled()) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Player target)) {
+            return;
+        }
+        Player viewer = event.getPlayer();
+        Nametag tag = nametagManager.get(target);
+        if (tag != null) {
+            tag.hide(viewer);
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         nametagManager.clearViewerReady(event.getPlayer());
@@ -70,14 +131,7 @@ public class PlayerListener implements Listener {
         if (!plugin.config().getNametagConfig().isEnabled()) {
             return;
         }
-        Nametag nametag = nametagManager.get(event.getPlayer());
-        if (nametag == null) {
-            return;
-        }
-        FoliaTasks.runOnEntity(plugin, event.getPlayer(), () -> {
-            nametag.syncPositionForViewers();
-            nametag.updateVisibility(8);
-        });
+        nametagManager.afterPlayerTeleported(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -85,14 +139,7 @@ public class PlayerListener implements Listener {
         if (!plugin.config().getNametagConfig().isEnabled()) {
             return;
         }
-        Nametag nametag = nametagManager.get(event.getPlayer());
-        if (nametag == null) {
-            return;
-        }
-        FoliaTasks.runOnEntity(plugin, event.getPlayer(), () -> {
-            nametag.hideForAll();
-            nametag.updateVisibilityForAll();
-        });
+        nametagManager.afterPlayerTeleported(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

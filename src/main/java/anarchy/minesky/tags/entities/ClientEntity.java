@@ -116,6 +116,7 @@ public class ClientEntity {
             ids[i] = passengers.get(i).getEntityId();
         }
         ids[passengers.size()] = entityId;
+        // Só pacote SetPassengers. Não usa Entity.startRiding / addPassenger (NMS).
         sendDisplayPacket(new WrapperPlayServerSetPassengers(entity.getEntityId(), ids), viewer, PacketKind.MOUNT);
     }
 

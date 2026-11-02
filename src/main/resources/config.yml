@@ -11,6 +11,7 @@ nametags:
   show-self: false
 
   # Intervalo de atualização do texto (segundos). Valores maiores = menos pacotes.
+  # Não afeta ícone de voz ({voiceicon} / %atvc_*%): mudanças de voz atualizam na hora.
   update-interval: 5
 
   # Distância máxima (blocos) para ver a tag
@@ -28,12 +29,12 @@ nametags:
   display:
     # Uma linha: prefixos (PAPI relacional) + nick. {player} = nome do alvo da tag.
     lines:
-      - "{voiceicon}<white>%luckperms_prefix%{player}"
+      - "<white>%luckperms_prefix%{player}%atvc_icon%"
       - "%anarchyeconomy_formatted_tab%%anarchyclans_tab%"
 
     # Padrão do servidor; cada jogador pode mudar em /config → Visual do Nick
     text-shadow: false
-    see-through: false
+    see-through: true
     text-alignment: center
 
     # default | transparent | hex — padrão do servidor; fundo escuro on/off no /config
@@ -51,28 +52,17 @@ nametags:
       y: 1
       z: 1
 
-# Ícones de voz (API Simple Voice Chat + {voiceicon} / %atvc_%). TextDisplay não usa as texturas do mod no cliente.
+# Ícones de voz: {voiceicon} nas linhas + placeholders %atvc_*% (head_url / PAPI).
 voice-chat:
   enabled: true
-  # Opcional: envia pack próprio com ícones parecidos (não é o asset do mod).
-  send-resource-pack: false
-  # true = glifos + send-resource-pack; false = emojis abaixo (padrão)
-  mod-glyphs: false
   use-placeholder: false
   placeholder: "%atvc_%"
   talk-timeout-ms: 350
-  # MiniMessage <head_url:...> via AnarchyCore (PlayerHead object no TextDisplay)
-  talking: "<head_url:http://textures.minecraft.net/texture/62e4c4a61e4057e8422a73948be13a3272c286185abde852a6f616a74325e358> "
-  whispering: "🔉 "
-  quiet: ""
-  disabled: "❌ "
-  not-installed: ""
-  glyphs:
-    talking: "<head_url:http://textures.minecraft.net/texture/62e4c4a61e4057e8422a73948be13a3272c286185abde852a6f616a74325e358> "
-    whispering: "<font:anarchytags:voice_icons>\uE002</font> "
-    quiet: "<font:anarchytags:voice_icons>\uE003</font> "
-    disabled: "<font:anarchytags:voice_icons>\uE004</font> "
-    not-installed: "<font:anarchytags:voice_icons>\uE005</font> "
+  talking: " <head_url:https://textures.minecraft.net/texture/891c851d84187288924efb13869ae5037abc324264bc95552fecfd7de5611d92>"
+  whispering: " 🔉"
+  quiet: " <head_url:https://textures.minecraft.net/texture/63b402e51fba28d9843f153669640049d63d71463dc1f915f3ce5cca734b0a90>"
+  disabled: " <head_url:https://textures.minecraft.net/texture/5f4b280f9a43df3b67e1ba112b34a527817938270931a9b445996424b2c7a68d>"
+  not-installed: " <head_url:https://textures.minecraft.net/texture/986954486f361ecd2fa2f95a36da532d9f732c0d1868b30da596a166cd46bd5a>"
 
 # Ordem do tab, no mesmo estilo do sorting-types do TAB.
 # O jogador só pode estar em um time: este plugin esconde a nametag vanilla e ordena o tab.

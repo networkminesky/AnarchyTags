@@ -6,7 +6,7 @@ import anarchy.minesky.tags.hook.VoiceChatBridge;
 import org.bukkit.entity.Player;
 
 /**
- * Resolve ícone de voz (emoji ou glifos do resource pack estilo Simple Voice Chat).
+ * Resolve ícone de voz via config (head_url / PAPI) e estado da API Simple Voice Chat.
  */
 public final class VoiceIconService {
 
@@ -25,9 +25,6 @@ public final class VoiceIconService {
     }
 
     public static String format(NametagConfig config, VoiceIconState state) {
-        if (config.isVoiceChatModGlyphs()) {
-            return config.getVoiceGlyph(state);
-        }
         return switch (state) {
             case TALKING -> config.getVoiceChatTalking();
             case WHISPERING -> config.getVoiceChatWhispering();

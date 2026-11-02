@@ -2,6 +2,7 @@ package anarchy.minesky.tags.nametags;
 
 import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.api.AnarchyTagsAPI;
+import anarchy.minesky.tags.api.NametagVisibilityFilter;
 import anarchy.minesky.tags.config.NametagConfig;
 import anarchy.minesky.tags.nick.NickHideMode;
 import anarchy.minesky.tags.sorting.TabOrder;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class NametagManager implements AnarchyTagsAPI {
 
@@ -27,6 +29,8 @@ public class NametagManager implements AnarchyTagsAPI {
     private final Map<UUID, String> customFormats = new ConcurrentHashMap<>();
     private final Set<UUID> viewerReady = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> packetsAfterMs = new ConcurrentHashMap<>();
+    private final List<NametagVisibilityFilter> visibilityFilters = new CopyOnWriteArrayList<>();
+    private final Map<Integer, UUID> ownerByEntityId = new ConcurrentHashMap<>();
 
     public NametagManager(TabOrder tabOrder) {
         this.tabOrder = tabOrder;
@@ -120,10 +124,11 @@ public class NametagManager implements AnarchyTagsAPI {
 
         Nametag existing = nametags.remove(id);
         if (existing != null) {
-            FoliaTasks.runOnEntity(AnarchyTags.getInstance(), player, existing::hideForAll);
+            existing.hideForAll();
         }
 
         nametags.put(id, new Nametag(this, player));
+        ownerByEntityId.put(player.getEntityId(), id);
         tabOrder.precomputeAsync(id, player.getName());
         AnarchyTags.getInstance().getNickHideManager().restoreOnJoin(player);
 
@@ -174,6 +179,59 @@ public class NametagManager implements AnarchyTagsAPI {
         }
     }
 
+    /**
+     * Id do TextDisplay para injetar no SetPassengers do veículo, ou -1.
+     */
+    public int displayPassengerId(int vehicleEntityId, Player viewer) {
+        UUID ownerId = ownerByEntityId.get(vehicleEntityId);
+        if (ownerId == null || viewer == null) {
+            return -1;
+        }
+        Nametag tag = nametags.get(ownerId);
+        if (tag == null || !tag.isSpawnedForViewer(viewer)) {
+            return -1;
+        }
+        return tag.getDisplayEntityId();
+    }
+
+    /** Reposiciona após o teleporte com delay seguro para o Folia carregar as chunks */
+    public void afterPlayerTeleported(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (!AnarchyTags.getInstance().config().getNametagConfig().isEnabled()) {
+            return;
+        }
+        ownerByEntityId.put(player.getEntityId(), player.getUniqueId());
+
+        // Espera 3 ticks para a chunk carregar no cliente
+        FoliaTasks.runOnEntityDelayed(AnarchyTags.getInstance(), player, () -> {
+            if (!player.isOnline()) return;
+
+            Nametag own = get(player);
+            if (own != null) {
+                own.followAllViewers();
+            }
+
+            if (!isPacketsReady(player)) {
+                return;
+            }
+
+            // Atualiza apenas jogadores no mesmo mundo em vez de disparar tarefas globais
+            for (Player other : player.getWorld().getPlayers()) {
+                if (other.equals(player)) continue;
+                Nametag otherTag = get(other);
+                if (otherTag != null) {
+                    FoliaTasks.runOnEntity(AnarchyTags.getInstance(), other, () -> {
+                        if (otherTag.canShowTo(player, (long) otherTag.getVisibilityDistance() * otherTag.getVisibilityDistance())) {
+                            otherTag.show(player);
+                        }
+                    });
+                }
+            }
+        }, 3L);
+    }
+
     /** Garante que todos veem a tag de um jogador (ex.: após init). */
     public void presentPlayerToAllViewers(Player target) {
         Nametag tag = get(target);
@@ -194,7 +252,7 @@ public class NametagManager implements AnarchyTagsAPI {
         }
         Nametag own = nametags.get(player.getUniqueId());
         if (own != null) {
-            if (mode == NickHideMode.FULL_HIDDEN || mode == NickHideMode.ADMIN_HINT) {
+            if (mode == NickHideMode.FULL_HIDDEN) {
                 own.hideForAll();
             }
             own.updateVisibility(32);
@@ -220,6 +278,7 @@ public class NametagManager implements AnarchyTagsAPI {
         NametagHandler.clearTarget(player);
         tabOrder.forget(player.getUniqueId());
         UUID id = player.getUniqueId();
+        ownerByEntityId.entrySet().removeIf(entry -> id.equals(entry.getValue()));
         Nametag nametag = nametags.remove(id);
         if (nametag != null) {
             nametag.hideForAll();
@@ -248,21 +307,75 @@ public class NametagManager implements AnarchyTagsAPI {
 
     public void createAll() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            startJoin(player);
+            scheduleJoin(player);
         }
     }
 
     public void removeAll() {
-        for (Nametag nametag : new ArrayList<>(nametags.values())) {
-            Player owner = nametag.getPlayer();
-            if (owner != null) {
-                remove(owner);
-            }
+        for (Player online : new ArrayList<>(Bukkit.getOnlinePlayers())) {
+            remove(online);
         }
+        nametags.clear();
         tabOrder.reset();
         NametagHandler.reset();
         viewerReady.clear();
         packetsAfterMs.clear();
+    }
+
+    public boolean passesExternalVisibility(Player viewer, Player target) {
+        return VisibilityFilterChain.passes(visibilityFilters, viewer, target);
+    }
+
+    @Override
+    public void registerVisibilityFilter(@NotNull NametagVisibilityFilter filter) {
+        visibilityFilters.add(filter);
+    }
+
+    @Override
+    public void unregisterVisibilityFilter(@NotNull NametagVisibilityFilter filter) {
+        visibilityFilters.remove(filter);
+    }
+
+    @Override
+    public boolean isNametagVisibleFor(@NotNull Player viewer, @NotNull Player target) {
+        Nametag tag = get(target);
+        if (tag == null || !viewer.isOnline() || !target.isOnline()) {
+            return false;
+        }
+        long maxDistSq = (long) AnarchyTags.getInstance().config().getNametagConfig().getVisibilityDistance();
+        maxDistSq *= maxDistSq;
+        return tag.canShowTo(viewer, maxDistSq);
+    }
+
+    @Override
+    public @NotNull NickHideMode getNickHideMode(@NotNull Player player) {
+        return AnarchyTags.getInstance().getNickHideManager().getMode(player);
+    }
+
+    @Override
+    public boolean isNickLineEnabled(@NotNull Player player) {
+        return AnarchyTags.getInstance().getNickHideManager().isNickLineEnabled(player);
+    }
+
+    @Override
+    public void refreshVisibilityFor(@NotNull Player target) {
+        Nametag nametag = get(target);
+        if (nametag == null || !target.isOnline()) {
+            return;
+        }
+        FoliaTasks.runOnEntity(AnarchyTags.getInstance(), target, () -> {
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                if (viewer.getUniqueId().equals(target.getUniqueId())) {
+                    continue;
+                }
+                if (isNametagVisibleFor(viewer, target)) {
+                    nametag.presentTo(viewer);
+                } else if (nametag.getViewers().contains(viewer.getUniqueId())) {
+                    nametag.hide(viewer);
+                }
+            }
+            nametag.updateVisibility(32);
+        });
     }
 
     @Override

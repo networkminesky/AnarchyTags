@@ -4,11 +4,9 @@ import java.util.Locale;
 
 public enum NickHideMode {
     OFF,
-    /** Tag visível com nick ofuscado (&k). */
+    /** Tag visível com nick ofuscado (&k); prefixo PAPI / economia / clãs permanecem. */
     OBFUSCATED,
-    /** Jogadores comuns não veem; admins com permissão veem &8. */
-    ADMIN_HINT,
-    /** Tag totalmente invisível (só quem pode usar). */
+    /** Tag totalmente invisível (admins). */
     FULL_HIDDEN;
 
     public static NickHideMode fromId(String raw) {
@@ -18,8 +16,7 @@ public enum NickHideMode {
         return switch (raw.trim().toLowerCase(Locale.ROOT)) {
             case "off", "normal", "nenhum" -> OFF;
             case "obfuscated", "ofuscado", "k", "obf" -> OBFUSCATED;
-            case "admin", "admin_hint", "dica", "hint" -> ADMIN_HINT;
-            case "full", "invisivel", "hidden", "full_hidden" -> FULL_HIDDEN;
+            case "full", "invisivel", "hidden", "full_hidden", "admin", "admin_hint", "dica", "hint" -> FULL_HIDDEN;
             default -> OFF;
         };
     }
@@ -28,7 +25,6 @@ public enum NickHideMode {
         return switch (this) {
             case OFF -> "off";
             case OBFUSCATED -> "obfuscated";
-            case ADMIN_HINT -> "admin_hint";
             case FULL_HIDDEN -> "full_hidden";
         };
     }

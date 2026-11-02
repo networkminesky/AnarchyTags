@@ -6,7 +6,6 @@ import anarchy.minesky.tags.nametags.NametagManager;
 import anarchy.minesky.tags.util.FoliaTasks;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -17,15 +16,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class NickHideManager {
 
-    public static final String PERM_USE = "anarchytags.escondernick";
-    public static final String PERM_FULL = "anarchytags.escondernick.invisivel";
-    public static final String PERM_SEE_HINT = "anarchytags.escondernick.ver";
+    public static final String PERM_OBFUSCATED = "anarchytags.nick.ofuscado";
+    public static final String PERM_OBFUSCATED_VIEW = "anarchytags.nick.ofuscado.view";
+    public static final String PERM_INVISIBLE = "anarchytags.nick.invisible";
+    public static final String PERM_INVISIBLE_OTHERS = "anarchytags.nick.invisible.others";
 
-    private static final String STEVE_TEXTURE = "eyJ0aW1c3RhbXAiOjAsInByb2ZpbGVJZCI6Ijg2NjdiYTcxLWI4NWEtNDAwNC1hZjAzLTQ1OTkzOGQ1MzEzZSIsInByb2ZpbGVOYW1lIjoiU3RldmUifQ==";
+    private static final String STEVE_TEXTURE =
+            "eyJ0aW1c3RhbXAiOjAsInByb2ZpbGVJZCI6Ijg2NjdiYTcxLWI4NWEtNDAwNC1hZjAzLTQ1OTkzOGQ1MzEzZSIsInByb2ZpbGVOYW1lIjoiU3RldmUifQ==";
 
     private final AnarchyTags plugin;
     private final NickHideStorage storage;
     private final Map<UUID, NickHideMode> active = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> nickLineEnabled = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerProfile> savedProfiles = new ConcurrentHashMap<>();
 
     public NickHideManager(AnarchyTags plugin) {
@@ -48,104 +50,118 @@ public final class NickHideManager {
         return active.getOrDefault(playerId, NickHideMode.OFF);
     }
 
-    /** Compatibilidade com debug / checks antigos. */
-    public boolean isHidden(Player player) {
-        return getMode(player) != NickHideMode.OFF;
+    public boolean isNickLineEnabled(Player player) {
+        if (player == null) {
+            return true;
+        }
+        return nickLineEnabled.getOrDefault(player.getUniqueId(), true);
     }
 
-    public boolean isHidden(UUID playerId) {
-        return getMode(playerId) != NickHideMode.OFF;
+    public boolean isHidden(Player player) {
+        return getMode(player) != NickHideMode.OFF;
     }
 
     public boolean canSeeHiddenNametag(Player viewer, Player target) {
         if (viewer == null || target == null) {
             return false;
         }
-        NickHideMode mode = getMode(target);
-        return switch (mode) {
-            case OFF, OBFUSCATED -> true;
-            case ADMIN_HINT -> viewer.hasPermission(PERM_SEE_HINT);
-            case FULL_HIDDEN -> false;
-        };
+        return getMode(target) != NickHideMode.FULL_HIDDEN;
     }
 
-    public boolean viewerSeesAdminHint(Player viewer) {
-        return viewer != null && viewer.hasPermission(PERM_SEE_HINT);
-    }
-
-    /** Chamado no join, antes de liberar pacotes. */
     public void restoreOnJoin(Player player) {
         if (player == null) {
             return;
         }
-        NickHideMode stored = storage.read(player.getUniqueId());
-        if (stored == NickHideMode.FULL_HIDDEN && !player.hasPermission(PERM_FULL)) {
-            stored = NickHideMode.OBFUSCATED;
-            storage.write(player.getUniqueId(), stored);
+        UUID id = player.getUniqueId();
+        NickHideMode stored = storage.readMode(id);
+        if (stored == NickHideMode.FULL_HIDDEN && !player.hasPermission(PERM_INVISIBLE)) {
+            stored = NickHideMode.OFF;
+            storage.writeMode(id, NickHideMode.OFF);
         }
+        boolean nickLine = storage.readNickLineEnabled(id);
+        nickLineEnabled.put(id, nickLine);
         if (stored == NickHideMode.OFF) {
-            active.remove(player.getUniqueId());
-            return;
+            active.remove(id);
+        } else {
+            active.put(id, stored);
         }
-        final NickHideMode mode = stored;
-        active.put(player.getUniqueId(), mode);
-        FoliaTasks.runOnEntity(plugin, player, () -> applyMode(player, mode, false));
+        if (stored != NickHideMode.OFF || !nickLine) {
+            FoliaTasks.runOnEntity(plugin, player, () -> applyVisualState(player, false));
+        }
     }
 
-    public NickHideMode cycleMode(Player player) {
-        if (player == null || !player.isOnline()) {
-            return NickHideMode.OFF;
+    public boolean toggleObfuscated(Player player) {
+        if (player == null || !player.isOnline() || !player.hasPermission(PERM_OBFUSCATED)) {
+            return false;
         }
-        NickHideMode next = nextMode(player, getMode(player));
-        setMode(player, next);
+        NickHideMode current = getMode(player);
+        if (current == NickHideMode.FULL_HIDDEN) {
+            return false;
+        }
+        NickHideMode next = current == NickHideMode.OBFUSCATED ? NickHideMode.OFF : NickHideMode.OBFUSCATED;
+        return setMode(player, next);
+    }
+
+    public boolean toggleNickLine(Player player) {
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+        boolean next = !isNickLineEnabled(player);
+        nickLineEnabled.put(player.getUniqueId(), next);
+        storage.writeNickLineEnabled(player.getUniqueId(), next);
+        FoliaTasks.runOnEntity(plugin, player, () -> applyVisualState(player, true));
         return next;
+    }
+
+    public boolean toggleInvisible(Player actor, Player target) {
+        if (actor == null || target == null || !target.isOnline()) {
+            return false;
+        }
+        if (!actor.getUniqueId().equals(target.getUniqueId())) {
+            if (!actor.hasPermission(PERM_INVISIBLE_OTHERS)) {
+                return false;
+            }
+        } else if (!actor.hasPermission(PERM_INVISIBLE)) {
+            return false;
+        }
+        NickHideMode current = getMode(target);
+        NickHideMode next = current == NickHideMode.FULL_HIDDEN ? NickHideMode.OFF : NickHideMode.FULL_HIDDEN;
+        return setMode(target, next);
     }
 
     public boolean setMode(Player player, NickHideMode mode) {
         if (player == null || !player.isOnline() || mode == null) {
             return false;
         }
-        if (mode == NickHideMode.FULL_HIDDEN && !player.hasPermission(PERM_FULL)) {
+        if (mode == NickHideMode.FULL_HIDDEN && !player.hasPermission(PERM_INVISIBLE)) {
             return false;
         }
         if (mode == NickHideMode.OFF) {
             active.remove(player.getUniqueId());
-            storage.write(player.getUniqueId(), NickHideMode.OFF);
-            FoliaTasks.runOnEntity(plugin, player, () -> applyMode(player, NickHideMode.OFF, true));
-            return true;
+            storage.writeMode(player.getUniqueId(), NickHideMode.OFF);
+        } else {
+            active.put(player.getUniqueId(), mode);
+            storage.writeMode(player.getUniqueId(), mode);
         }
-        active.put(player.getUniqueId(), mode);
-        storage.write(player.getUniqueId(), mode);
-        FoliaTasks.runOnEntity(plugin, player, () -> applyMode(player, mode, true));
+        FoliaTasks.runOnEntity(plugin, player, () -> applyVisualState(player, true));
         return true;
     }
 
-    private NickHideMode nextMode(Player player, NickHideMode current) {
-        boolean full = player.hasPermission(PERM_FULL);
-        return switch (current) {
-            case OFF -> NickHideMode.OBFUSCATED;
-            case OBFUSCATED -> NickHideMode.ADMIN_HINT;
-            case ADMIN_HINT -> full ? NickHideMode.FULL_HIDDEN : NickHideMode.OFF;
-            case FULL_HIDDEN -> NickHideMode.OFF;
-        };
-    }
-
-    private void applyMode(Player player, NickHideMode mode, boolean refreshOthers) {
-        if (mode == NickHideMode.OFF) {
-            restoreSkin(player);
-        } else {
-            savedProfiles.putIfAbsent(player.getUniqueId(), copyProfile(player.getPlayerProfile()));
-            applySteveSkin(player);
-        }
+    private void applyVisualState(Player player, boolean refreshOthers) {
+        NickHideMode mode = getMode(player);
+        applySkinForMode(player, mode);
 
         NametagManager manager = plugin.getNametagManager();
         Nametag own = manager.get(player);
+
         if (own != null) {
-            if (mode == NickHideMode.FULL_HIDDEN || mode == NickHideMode.ADMIN_HINT) {
+            if (mode == NickHideMode.FULL_HIDDEN) {
                 own.hideForAll();
+            } else if (manager.isPacketsReady(player)) {
+                own.updateVisibility(24);
             }
             if (manager.isPacketsReady(player)) {
-                own.updateVisibility(16);
+                own.invalidateVisuals();
                 own.refreshAllViewerTextsIfChanged();
             }
         }
@@ -156,20 +172,33 @@ public final class NickHideManager {
                 if (owner == null || owner.getUniqueId().equals(player.getUniqueId())) {
                     continue;
                 }
-                if (manager.isPacketsReady(player)) {
-                    FoliaTasks.runOnEntity(plugin, owner, () -> {
-                        if (tag.getViewers().contains(player.getUniqueId())) {
-                            tag.refreshTextIfChanged(player);
-                        }
-                    });
+                if (!manager.isPacketsReady(player)) {
+                    continue;
                 }
+                FoliaTasks.runOnEntity(plugin, owner, () -> {
+                    if (tag.getViewers().contains(player.getUniqueId())) {
+                        tag.invalidateVisuals();
+                        tag.refreshTextIfChanged(player);
+                    } else {
+                        tag.presentTo(player);
+                    }
+                });
             }
         }
 
         manager.tabOrder().recompute(player);
+        manager.refreshVisibilityFor(player);
     }
 
-    /** Só limpa memória de sessão; mantém nick-hide.yml. */
+    private void applySkinForMode(Player player, NickHideMode mode) {
+        if (mode == NickHideMode.OFF) {
+            restoreSkin(player);
+        } else if (mode == NickHideMode.OBFUSCATED) {
+            savedProfiles.putIfAbsent(player.getUniqueId(), copyProfile(player.getPlayerProfile()));
+            applySteveSkin(player);
+        }
+    }
+
     public void onQuit(Player player) {
         if (player == null) {
             return;
@@ -177,14 +206,13 @@ public final class NickHideManager {
         UUID id = player.getUniqueId();
         savedProfiles.remove(id);
         active.remove(id);
+        nickLineEnabled.remove(id);
     }
 
     private void restoreSkin(Player player) {
         PlayerProfile saved = savedProfiles.remove(player.getUniqueId());
         if (saved != null) {
             player.setPlayerProfile(copyProfile(saved));
-        } else {
-            player.setPlayerProfile(Bukkit.createProfile(player.getUniqueId(), player.getName()));
         }
     }
 
@@ -203,9 +231,5 @@ public final class NickHideManager {
             }
         }
         return copy;
-    }
-
-    public static NamedTextColor adminHintColor() {
-        return NamedTextColor.DARK_GRAY;
     }
 }

@@ -54,7 +54,9 @@ public class Nametag {
         this.hideInSpectator = config.isHideInSpectator();
         this.hideInVanish = config.isHideInVanish();
 
-        this.display = new ClientTextDisplay(player.getLocation().clone());
+        // Inicia a localização já na altura dos olhos para evitar spawn no pé
+        Location spawnLoc = player.getLocation().clone().add(0, 1.8, 0);
+        this.display = new ClientTextDisplay(spawnLoc);
         this.display.setTranslation(new Vector3f(
                 (float) config.getTranslation().getX(),
                 (float) config.getTranslation().getY(),
@@ -62,12 +64,16 @@ public class Nametag {
         ));
         this.display.setScale(config.getScale());
         this.display.setTextAlignment(config.getTextAlignment());
-        this.display.setSeeThrough(config.isSeeThrough());
+        this.display.setSeeThrough(true);
         this.display.setBillboard(config.getBillboard());
     }
 
     public Player getPlayer() {
         return player;
+    }
+
+    public int getVisibilityDistance() {
+        return visibilityDistance;
     }
 
     public Set<UUID> getViewers() {
@@ -109,17 +115,12 @@ public class Nametag {
         updateVisibility(48);
     }
 
-    /**
-     * Mostra ou esconde só quem entrou ou saiu do alcance.
-     * Não reenvia texto. Devolve quantos spawns novos foram feitos.
-     */
     public int updateVisibility(int showBudget) {
         if (!player.isOnline() || player.getWorld() == null) {
             return 0;
         }
 
-        Location location = player.getLocation();
-        display.setLocation(location);
+        placeAboveHead();
         int shown = 0;
         double maxDistSq = (long) visibilityDistance * visibilityDistance;
 
@@ -174,6 +175,10 @@ public class Nametag {
     }
 
     private boolean shouldSee(Player viewer, double maxDistSq) {
+        return canShowTo(viewer, maxDistSq);
+    }
+
+    public boolean canShowTo(Player viewer, double maxDistSq) {
         if (viewer == null || !viewer.isOnline() || viewer.isDead()) {
             return false;
         }
@@ -198,6 +203,9 @@ public class Nametag {
         if (!AnarchyTags.getInstance().getNickHideManager().canSeeHiddenNametag(viewer, player)) {
             return false;
         }
+        if (!manager.passesExternalVisibility(viewer, player)) {
+            return false;
+        }
         if (!viewer.getWorld().equals(player.getWorld())) {
             return false;
         }
@@ -214,7 +222,6 @@ public class Nametag {
         mountHash.remove(viewerId);
     }
 
-    /** Envia a tag para quem ainda não a vê. Devolve false se não houve pacote. */
     public boolean presentTo(Player viewer) {
         if (viewer == null || !shouldSee(viewer)) {
             return false;
@@ -227,6 +234,9 @@ public class Nametag {
     }
 
     public void show(Player viewer) {
+        if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
         if (hideSelf && player.getUniqueId().equals(viewer.getUniqueId())) {
             return;
         }
@@ -236,34 +246,73 @@ public class Nametag {
     }
 
     public void hide(Player viewer) {
+        if (viewer == null) return;
         viewers.remove(viewer.getUniqueId());
         display.despawn(viewer);
         lastVisual.remove(viewer.getUniqueId());
         mountHash.remove(viewer.getUniqueId());
     }
 
+    /**
+     * Atualiza o visual e sincroniza a montagem.
+     * NUNCA envia teleportFor() pois a tag é passageira (passenger).
+     */
     public void update(Player viewer) {
-        display.setLocation(player.getLocation());
-        boolean first = !display.isSpawnedFor(viewer);
-        if (first) {
-            display.spawn(viewer);
-            viewers.add(viewer.getUniqueId());
-        }
-
-        boolean changed = writeVisual(viewer);
-        if (first || changed) {
-            display.update(viewer);
-        }
-        mountIfNeeded(viewer, first);
-    }
-
-    private void mountIfNeeded(Player viewer, boolean force) {
-        int hash = passengerHash();
-        if (!force && mountHash.getOrDefault(viewer.getUniqueId(), Integer.MIN_VALUE) == hash) {
+        if (viewer == null || !viewer.isOnline()) {
             return;
         }
-        display.mount(player, viewer);
-        mountHash.put(viewer.getUniqueId(), hash);
+
+        placeAboveHead();
+        boolean first = !display.isSpawnedFor(viewer);
+
+        if (first) {
+            writeVisual(viewer);
+            display.setSeeThrough(true);
+            display.spawn(viewer);
+            display.update(viewer);
+            display.mount(player, viewer);
+            viewers.add(viewer.getUniqueId());
+            mountHash.put(viewer.getUniqueId(), passengerHash());
+            return;
+        }
+
+        // Se já está spawnado: só envia metadata se o texto ou estilo mudou
+        if (writeVisual(viewer)) {
+            display.setSeeThrough(true);
+            display.update(viewer);
+        }
+
+        // Só remonta se os passageiros reais do player mudaram (ex: subiu num barco/cavalo)
+        int currentHash = passengerHash();
+        Integer lastHash = mountHash.get(viewer.getUniqueId());
+        if (lastHash == null || lastHash != currentHash) {
+            display.mount(player, viewer);
+            mountHash.put(viewer.getUniqueId(), currentHash);
+        }
+    }
+
+    public void followAllViewers() {
+        if (!player.isOnline() || player.getWorld() == null) {
+            return;
+        }
+        placeAboveHead();
+        double maxDistSq = (long) visibilityDistance * visibilityDistance;
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            if (!viewer.getWorld().equals(player.getWorld()) || !shouldSee(viewer, maxDistSq)) {
+                if (viewers.contains(viewer.getUniqueId()) || display.isSpawnedFor(viewer)) {
+                    hide(viewer);
+                }
+                continue;
+            }
+            viewers.add(viewer.getUniqueId());
+            update(viewer);
+        }
+    }
+
+    private void placeAboveHead() {
+        // Define a coordenada na altura da cabeça (1.8 blocos acima dos pés)
+        Location loc = player.getLocation().clone().add(0, 1.8, 0);
+        display.setLocation(loc);
     }
 
     private int passengerHash() {
@@ -328,7 +377,6 @@ public class Nametag {
         return components.size() == 1 ? components.getFirst() : ComponentUtils.join(components);
     }
 
-    /** Atualiza metadata só se texto/sombra/fundo mudaram — não remonta nem respawna. */
     public void refreshTextIfChanged(Player viewer) {
         if (viewer == null || !viewers.contains(viewer.getUniqueId()) || !display.isSpawnedFor(viewer)) {
             return;
@@ -353,7 +401,6 @@ public class Nametag {
         }
     }
 
-    /** Chamado quando ícone de voz ou placeholder muda. */
     public void refreshAllViewerTextsIfChanged() {
         for (UUID viewerId : List.copyOf(viewers)) {
             Player viewer = Bukkit.getPlayer(viewerId);
@@ -363,35 +410,31 @@ public class Nametag {
         }
     }
 
-    public void teleportForAll() {
-        syncPositionForViewers();
+    public void forceRefreshAllViewerTexts() {
+        lastVisual.clear();
+        refreshAllViewerTextsIfChanged();
     }
 
-    /** Teleport leve — sem remount (evita piscar). Mount só no spawn inicial. */
+    public void teleportForAll() {
+        followAllViewers();
+    }
+
     public void syncPositionForViewers() {
-        if (!player.isOnline() || viewers.isEmpty()) {
-            return;
-        }
-        Location loc = player.getLocation();
-        display.setLocation(loc);
-        for (UUID viewerId : List.copyOf(viewers)) {
-            Player viewer = Bukkit.getPlayer(viewerId);
-            if (viewer == null || !viewer.isOnline() || !display.isSpawnedFor(viewer)) {
-                continue;
-            }
-            display.teleportFor(viewer);
-        }
+        followAllViewers();
     }
 
     private record Visual(String contentKey, boolean shadow, int background) {}
 
     private String formatPlayerToken(Player viewer, NickHideMode hideMode) {
+        NickHideManager nickHide = AnarchyTags.getInstance().getNickHideManager();
+        if (!nickHide.isNickLineEnabled(player)) {
+            return "";
+        }
         String name = player.getName();
-        boolean adminView = viewer != null && viewer.hasPermission(NickHideManager.PERM_SEE_HINT);
+        boolean adminView = viewer != null && viewer.hasPermission(NickHideManager.PERM_OBFUSCATED_VIEW);
         return switch (hideMode) {
             case OFF -> name;
             case OBFUSCATED -> adminView ? "§8" + name : "§k" + name + "§r";
-            case ADMIN_HINT -> adminView ? "§8" + name : name;
             case FULL_HIDDEN -> name;
         };
     }

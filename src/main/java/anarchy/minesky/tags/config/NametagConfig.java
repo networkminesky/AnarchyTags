@@ -3,7 +3,6 @@ package anarchy.minesky.tags.config;
 import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.entities.DisplayBillboard;
 import anarchy.minesky.tags.entities.TextAlignment;
-import anarchy.minesky.tags.voice.VoiceIconState;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.util.Vector;
 
@@ -38,19 +37,12 @@ public class NametagConfig {
     private int joinInitDelayTicks;
     private boolean voiceChatEnabled;
     private boolean voiceChatUsePlaceholder;
-    private boolean voiceChatModGlyphs;
-    private boolean voiceChatSendResourcePack;
     private String voiceChatPlaceholder;
     private String voiceChatTalking;
     private String voiceChatWhispering;
     private String voiceChatQuiet;
     private String voiceChatDisabled;
     private String voiceChatNotInstalled;
-    private String glyphTalking;
-    private String glyphWhispering;
-    private String glyphQuiet;
-    private String glyphDisabled;
-    private String glyphNotInstalled;
     private int voiceChatTalkTimeoutMs;
     private static final String DEFAULT_TALKING_HEAD =
             "<head_url:http://textures.minecraft.net/texture/62e4c4a61e4057e8422a73948be13a3272c286185abde852a6f616a74325e358> ";
@@ -77,7 +69,7 @@ public class NametagConfig {
             lines = List.of("%anarchyeconomy_formatted_tab%%anarchyclans_tab% <white>{player}");
         }
         textShadow = config.getBoolean("nametags.display.text-shadow", true);
-        seeThrough = config.getBoolean("nametags.display.see-through", false);
+        seeThrough = config.getBoolean("nametags.display.see-through", true);
         textAlignment = parseAlignment(config.getString("nametags.display.text-alignment", "center"));
         background = config.getString("nametags.display.background", "transparent");
         billboard = parseBillboard(config.getString("nametags.display.billboard", "center"));
@@ -106,8 +98,6 @@ public class NametagConfig {
         }
         voiceChatEnabled = config.getBoolean("voice-chat.enabled", true);
         voiceChatUsePlaceholder = config.getBoolean("voice-chat.use-placeholder", false);
-        voiceChatModGlyphs = config.getBoolean("voice-chat.mod-glyphs", false);
-        voiceChatSendResourcePack = config.getBoolean("voice-chat.send-resource-pack", false);
         voiceChatPlaceholder = config.getString("voice-chat.placeholder", "%atvc_%");
         voiceChatTalking = config.getString("voice-chat.talking", DEFAULT_TALKING_HEAD);
         voiceChatWhispering = config.getString("voice-chat.whispering", "🔉 ");
@@ -115,15 +105,6 @@ public class NametagConfig {
         voiceChatDisabled = config.getString("voice-chat.disabled", "❌ ");
         voiceChatNotInstalled = config.getString("voice-chat.not-installed", "");
         voiceChatTalkTimeoutMs = Math.max(100, config.getInt("voice-chat.talk-timeout-ms", 350));
-        glyphTalking = config.getString("voice-chat.glyphs.talking", DEFAULT_TALKING_HEAD);
-        glyphWhispering = config.getString("voice-chat.glyphs.whispering",
-                "<font:anarchytags:voice_icons>\uE002</font> ");
-        glyphQuiet = config.getString("voice-chat.glyphs.quiet",
-                "<font:anarchytags:voice_icons>\uE003</font> ");
-        glyphDisabled = config.getString("voice-chat.glyphs.disabled",
-                "<font:anarchytags:voice_icons>\uE004</font> ");
-        glyphNotInstalled = config.getString("voice-chat.glyphs.not-installed",
-                "<font:anarchytags:voice_icons>\uE005</font> ");
     }
 
     public boolean isEnabled() {
@@ -224,24 +205,6 @@ public class NametagConfig {
 
     public boolean isVoiceChatUsePlaceholder() {
         return voiceChatUsePlaceholder;
-    }
-
-    public boolean isVoiceChatModGlyphs() {
-        return voiceChatModGlyphs;
-    }
-
-    public boolean isVoiceChatSendResourcePack() {
-        return voiceChatSendResourcePack;
-    }
-
-    public String getVoiceGlyph(VoiceIconState state) {
-        return switch (state) {
-            case TALKING -> glyphTalking;
-            case WHISPERING -> glyphWhispering;
-            case QUIET -> glyphQuiet;
-            case DISABLED -> glyphDisabled;
-            case NOT_INSTALLED -> glyphNotInstalled;
-        };
     }
 
     public String getVoiceChatPlaceholder() {

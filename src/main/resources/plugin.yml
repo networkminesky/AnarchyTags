@@ -6,25 +6,28 @@ api-version: '26.3'
 folia-supported: true
 authors: [Bruno C.]
 depend: [packetevents, PlaceholderAPI, voicechat]
-softdepend: [AnarchyCore, AnarchyClans, AnarchyEconomy, AnarchyVanish, LuckPerms]
+softdepend: [AnarchyCore, AnarchyClans, AnarchyEconomy, AnarchyVanish, LuckPerms, AnarchyRTP]
 commands:
   anarchytags:
     description: Gerencia as tags do AnarchyTags
     aliases: [atags]
     usage: /<command> reload|debug
   escondernick:
-    description: Modos de esconder nick (ofuscado, admin, invisível)
-    usage: /<command> [normal|ofuscado|admin|invisivel]
+    description: Ofuscar nick, habilitar linha do nick ou ocultar tag (admin)
+    usage: /<command> | habilitar | invisivel [jogador]
 permissions:
   anarchytags.admin:
     description: Permite recarregar a configuração do AnarchyTags
     default: op
-  anarchytags.escondernick:
-    description: Permite usar /escondernick (ofuscado e modo admin)
+  anarchytags.nick.ofuscado:
+    description: Permite /escondernick (toggle nick ofuscado)
     default: true
-  anarchytags.escondernick.invisivel:
-    description: Permite modo totalmente invisível no /escondernick
+  anarchytags.nick.ofuscado.view:
+    description: Vê nick em &8 de quem usa modo ofuscado
     default: op
-  anarchytags.escondernick.ver:
-    description: Vê nick em &8 de quem usa escondernick (modo admin)
+  anarchytags.nick.invisible:
+    description: Permite /escondernick invisivel (oculta a própria tag)
+    default: op
+  anarchytags.nick.invisible.others:
+    description: Permite /escondernick invisivel <jogador>
     default: op

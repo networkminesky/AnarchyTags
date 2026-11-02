@@ -4,9 +4,9 @@ import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.config.NametagConfig;
 import anarchy.minesky.tags.nametags.Nametag;
 import anarchy.minesky.tags.util.FoliaTasks;
+import anarchy.minesky.tags.utils.helpers.PlaceholderHelper;
 import anarchy.minesky.tags.voice.VoiceIconService;
 import anarchy.minesky.tags.voice.VoiceIconState;
-import anarchy.minesky.tags.utils.helpers.PlaceholderHelper;
 import de.maxhenkel.voicechat.api.BukkitVoicechatService;
 import de.maxhenkel.voicechat.api.VoicechatApi;
 import de.maxhenkel.voicechat.api.VoicechatConnection;
@@ -101,6 +101,7 @@ public final class VoiceChatBridge implements VoicechatPlugin {
         if (resolved != null) {
             serverApi = resolved;
             VoiceChatServerAccess.logLateBind(plugin, resolved);
+            refreshAllVoiceIcons();
         }
     }
 
@@ -109,6 +110,30 @@ public final class VoiceChatBridge implements VoicechatPlugin {
             return;
         }
         instance.ensureServerApi();
+        FoliaTasks.runOnEntityDelayed(instance.plugin, player, () -> {
+            if (player.isOnline()) {
+                instance.refreshPlayerVoiceIcon(player.getUniqueId());
+            }
+        }, 8L);
+        FoliaTasks.runOnEntityDelayed(instance.plugin, player, () -> {
+            if (player.isOnline()) {
+                instance.refreshPlayerVoiceIcon(player.getUniqueId());
+            }
+        }, 40L);
+    }
+
+    public static void refreshAllVoiceIcons() {
+        if (instance == null) {
+            return;
+        }
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            instance.refreshPlayerVoiceIcon(online.getUniqueId());
+        }
+    }
+
+    private void refreshPlayerVoiceIcon(UUID playerId) {
+        lastIconKey.remove(playerId);
+        notifyIfIconChanged(playerId);
     }
 
     public static void ensureReady(AnarchyTags plugin) {
@@ -147,8 +172,7 @@ public final class VoiceChatBridge implements VoicechatPlugin {
                 + " | falando=" + isTalking(target.getUniqueId())
                 + " | estado=" + state
                 + " | icone=\"" + icon + "\""
-                + " | con=" + connectionDebug(target)
-                + " | modGlyphs=" + config.isVoiceChatModGlyphs();
+                + " | con=" + connectionDebug(target);
     }
 
     private static String connectionDebug(Player target) {
@@ -266,6 +290,7 @@ public final class VoiceChatBridge implements VoicechatPlugin {
         if (api instanceof VoicechatServerApi server) {
             serverApi = server;
             plugin.getLogger().info("Simple Voice Chat server API ativa.");
+            refreshAllVoiceIcons();
         } else {
             ensureServerApi();
         }
@@ -277,6 +302,7 @@ public final class VoiceChatBridge implements VoicechatPlugin {
         registration.registerEvent(VoicechatServerStartedEvent.class, event -> {
             serverApi = event.getVoicechat();
             plugin.getLogger().info("Simple Voice Chat server iniciado (evento API).");
+            refreshAllVoiceIcons();
         });
         registration.registerEvent(MicrophonePacketEvent.class, event -> {
             if (!hasVoicePayload(event.getPacket().getOpusEncodedData())) {
@@ -353,6 +379,6 @@ public final class VoiceChatBridge implements VoicechatPlugin {
         if (nametag == null) {
             return;
         }
-        FoliaTasks.runOnEntity(plugin, player, nametag::refreshAllViewerTextsIfChanged);
+        FoliaTasks.runOnEntity(plugin, player, nametag::forceRefreshAllViewerTexts);
     }
 }
