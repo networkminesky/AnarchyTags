@@ -221,7 +221,8 @@ Não fazem parte da interface Java, mas costumam aparecer junto da API:
 | `{player}` | Nome do dono da tag (respeita ofuscado / linha desabilitada) |
 | `{voiceicon}` | Ícone de voz na linha da tag |
 | `%atvc_icon%` | PlaceholderAPI (expansion interna) |
-| `%atvc_state%` | Estado: `talking`, `quiet`, etc. |
+| `%atvc_state%` | Estado: `talking`, `whispering`, `quiet`, `group`, `disabled`, `not_installed` |
+| `%atvc_group%` | Nome do grupo do Simple Voice Chat, ou vazio |
 
 **Ícone de voz:** mudanças (falar, mutar, conectar) atualizam a tag **na hora**, independente de `nametags.update-interval`. Esse intervalo só limita o refresh **periódico** de placeholders pesados (economia, clãs, etc.).
 

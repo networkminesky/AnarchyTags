@@ -11,14 +11,17 @@ public class AnarchyTagsConfig {
 
     private final AnarchyTags plugin;
     private final NametagConfig nametagConfig;
+    private final ScoreboardConfig scoreboardConfig;
 
     public AnarchyTagsConfig(AnarchyTags plugin) {
         this.plugin = plugin;
         this.nametagConfig = new NametagConfig(plugin);
+        this.scoreboardConfig = new ScoreboardConfig(plugin);
     }
 
     public void load() {
         nametagConfig.load();
+        scoreboardConfig.load();
     }
 
     public void reload() throws IOException, InvalidConfigurationException {
@@ -26,9 +29,14 @@ public class AnarchyTagsConfig {
         YamlConfiguration config = new YamlConfiguration();
         config.load(file);
         nametagConfig.load(config);
+        scoreboardConfig.load(config);
     }
 
     public NametagConfig getNametagConfig() {
         return nametagConfig;
+    }
+
+    public ScoreboardConfig getScoreboardConfig() {
+        return scoreboardConfig;
     }
 }

@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Placeholders estilo VoiceChatPlaceholders (Folia-safe, integrado ao AnarchyTags).
- * %atvc_% %atvc_icon% %atvc_status%
+ * %atvc_% %atvc_icon% %atvc_status% %atvc_group%
  */
 public final class AtvcPlaceholderExpansion extends PlaceholderExpansion {
 
@@ -46,6 +46,9 @@ public final class AtvcPlaceholderExpansion extends PlaceholderExpansion {
         }
         if (params.equalsIgnoreCase("status") || params.equalsIgnoreCase("state")) {
             return VoiceChatBridge.resolveState(player).name().toLowerCase(Locale.ROOT);
+        }
+        if (params.equalsIgnoreCase("group")) {
+            return VoiceChatBridge.groupName(player);
         }
         if (params.isEmpty() || params.equals("_") || params.equalsIgnoreCase("icon")) {
             return VoiceIconService.iconFor(null, player);

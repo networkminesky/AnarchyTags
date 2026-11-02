@@ -61,8 +61,44 @@ voice-chat:
   talking: " <head_url:https://textures.minecraft.net/texture/891c851d84187288924efb13869ae5037abc324264bc95552fecfd7de5611d92>"
   whispering: " 🔉"
   quiet: " <head_url:https://textures.minecraft.net/texture/63b402e51fba28d9843f153669640049d63d71463dc1f915f3ce5cca734b0a90>"
+  # Dentro de um grupo do Simple Voice Chat e sem falar. Falando continua talking/whispering.
+  group: " <head_url:https://textures.minecraft.net/texture/6cf0575c8259bf6906e47052918d7f086103b3c4078e319202b5f3b34b210011>"
   disabled: " <head_url:https://textures.minecraft.net/texture/5f4b280f9a43df3b67e1ba112b34a527817938270931a9b445996424b2c7a68d>"
   not-installed: " <head_url:https://textures.minecraft.net/texture/986954486f361ecd2fa2f95a36da532d9f732c0d1868b30da596a166cd46bd5a>"
+
+# Scoreboard lateral (estilo DonutSMP). Título e fixed-lines são sempre exibidos quando a scoreboard está ativa.
+# Cada entrada em toggles vira opção no /config → Scoreboard.
+scoreboard:
+  enabled: true
+  update-interval-seconds: 2
+  title: "&#a3feffᴍɪɴᴇsᴋʏ.ᴄᴏᴍ.ʙʀ"
+  fixed-lines:
+    - "&f<head:%player%> %displayname%"
+  toggles:
+    money:
+      label: "Saldo ($)"
+      default: true
+      line: "&#9dff00&l$ &f%anarchyeconomy_formatted%"
+    shards:
+      label: "Shards"
+      default: true
+      line: "&#e436ff⚗ &f%anarchyeconomy_shards_formatted%"
+    kills:
+      label: "Kills"
+      default: true
+      line: "&fKills: &7%statistic_player_kills%"
+    deaths:
+      label: "Mortes"
+      default: true
+      line: "&fMortes: &7%statistic_deaths%"
+    playtime:
+      label: "Tempo jogado"
+      default: true
+      line: "&fPlaytime: &7%statistic_time_played%"
+    ping:
+      label: "Ping"
+      default: true
+      line: "&f<mineskin:4d44c0c505744069a3b09d5ff5fb3960> &f%ping%ms"
 
 # Ordem do tab, no mesmo estilo do sorting-types do TAB.
 # O jogador só pode estar em um time: este plugin esconde a nametag vanilla e ordena o tab.

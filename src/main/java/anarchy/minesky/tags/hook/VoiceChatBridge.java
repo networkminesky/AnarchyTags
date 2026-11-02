@@ -13,6 +13,8 @@ import de.maxhenkel.voicechat.api.VoicechatConnection;
 import de.maxhenkel.voicechat.api.VoicechatPlugin;
 import de.maxhenkel.voicechat.api.VoicechatServerApi;
 import de.maxhenkel.voicechat.api.events.EventRegistration;
+import de.maxhenkel.voicechat.api.events.JoinGroupEvent;
+import de.maxhenkel.voicechat.api.events.LeaveGroupEvent;
 import de.maxhenkel.voicechat.api.events.MicrophonePacketEvent;
 import de.maxhenkel.voicechat.api.events.PlayerStateChangedEvent;
 import de.maxhenkel.voicechat.api.events.VoicechatServerStartedEvent;
@@ -219,7 +221,29 @@ public final class VoiceChatBridge implements VoicechatPlugin {
                     ? VoiceIconState.WHISPERING
                     : VoiceIconState.TALKING;
         }
+        if (connection.isInGroup()) {
+            return VoiceIconState.GROUP;
+        }
         return VoiceIconState.QUIET;
+    }
+
+    public static String groupName(Player target) {
+        if (target == null) {
+            return "";
+        }
+        if (instance != null) {
+            instance.ensureServerApi();
+        }
+        VoicechatServerApi api = instance != null ? instance.serverApi : null;
+        if (api == null) {
+            return "";
+        }
+        VoicechatConnection connection = api.getConnectionOf(target.getUniqueId());
+        if (connection == null || connection.getGroup() == null) {
+            return "";
+        }
+        String name = connection.getGroup().getName();
+        return name == null ? "" : name;
     }
 
     public static String iconFor(Player viewer, Player target) {
@@ -322,6 +346,16 @@ public final class VoiceChatBridge implements VoicechatPlugin {
                 clearTalking(playerId);
             }
             notifyIfIconChanged(playerId);
+        });
+        registration.registerEvent(JoinGroupEvent.class, event -> {
+            if (event.getConnection() != null && event.getConnection().getPlayer() != null) {
+                notifyIfIconChanged(event.getConnection().getPlayer().getUuid());
+            }
+        });
+        registration.registerEvent(LeaveGroupEvent.class, event -> {
+            if (event.getConnection() != null && event.getConnection().getPlayer() != null) {
+                notifyIfIconChanged(event.getConnection().getPlayer().getUuid());
+            }
         });
     }
 

@@ -39,6 +39,9 @@ public class PlayerListener implements Listener {
         VoiceChatBridge.onPlayerJoin(player);
         nametagManager.scheduleJoin(player);
         preferenceWatcher.seed(player);
+        if (plugin.config().getScoreboardConfig().isEnabled()) {
+            plugin.getScoreboardUpdateTask().seed(player);
+        }
     }
 
     /**
@@ -102,14 +105,17 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        nametagManager.clearViewerReady(event.getPlayer());
+        Player player = event.getPlayer();
+        nametagManager.clearViewerReady(player);
         if (plugin.config().getNametagConfig().isEnabled()) {
-            nametagManager.remove(event.getPlayer());
+            nametagManager.remove(player);
         }
-        NametagHandler.clearViewer(event.getPlayer());
-        preferenceWatcher.forget(event.getPlayer());
-        plugin.getNickHideManager().onQuit(event.getPlayer());
-        VoiceChatBridge.clearPlayer(event.getPlayer().getUniqueId());
+        NametagHandler.clearViewer(player);
+        preferenceWatcher.forget(player);
+        plugin.getScoreboardUpdateTask().forget(player);
+        plugin.getScoreboardManager().remove(player);
+        plugin.getNickHideManager().onQuit(player);
+        VoiceChatBridge.clearPlayer(player.getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

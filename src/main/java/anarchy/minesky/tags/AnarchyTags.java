@@ -14,6 +14,8 @@ import anarchy.minesky.tags.nametags.NametagManager;
 import anarchy.minesky.tags.nametags.NametagScheduler;
 import anarchy.minesky.tags.nametags.PassengerMountListener;
 import anarchy.minesky.tags.nametags.PlayerConfigPreferenceWatcher;
+import anarchy.minesky.tags.scoreboard.ScoreboardManager;
+import anarchy.minesky.tags.scoreboard.ScoreboardUpdateTask;
 import anarchy.minesky.tags.sorting.TabOrder;
 import anarchy.minesky.tags.utils.helpers.DependencyHelper;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -34,6 +36,8 @@ public final class AnarchyTags extends JavaPlugin {
     private NametagManager nametagManager;
     private NametagScheduler nametagScheduler;
     private PlayerConfigPreferenceWatcher preferenceWatcher;
+    private ScoreboardManager scoreboardManager;
+    private ScoreboardUpdateTask scoreboardUpdateTask;
     private NickHideManager nickHideManager;
     private PassengerMountListener passengerMountListener;
 
@@ -49,12 +53,15 @@ public final class AnarchyTags extends JavaPlugin {
         nametagManager = new NametagManager(tabOrder);
         nametagScheduler = new NametagScheduler(this);
         preferenceWatcher = new PlayerConfigPreferenceWatcher(this, nametagManager);
+        scoreboardManager = new ScoreboardManager(this);
+        scoreboardUpdateTask = new ScoreboardUpdateTask(this, scoreboardManager);
         nickHideManager = new NickHideManager(this);
         passengerMountListener = new PassengerMountListener(nametagManager);
         PacketEvents.getAPI().getEventManager().registerListener(passengerMountListener);
         VoicePlaceholderHook.register();
         nametagScheduler.start();
         preferenceWatcher.start();
+        scoreboardUpdateTask.start();
 
         getServer().getServicesManager().register(
                 AnarchyTagsAPI.class,
@@ -66,7 +73,7 @@ public final class AnarchyTags extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new VanishListener(this), this);
 
-        TagsPlayerConfig.register(this, config.getNametagConfig());
+        TagsPlayerConfig.register(this, config.getNametagConfig(), config.getScoreboardConfig());
 
         AnarchyTagsCommand command = new AnarchyTagsCommand(this);
         if (getCommand("anarchytags") != null) {
@@ -101,6 +108,7 @@ public final class AnarchyTags extends JavaPlugin {
                         nametag.refreshAllViewerTextsIfChanged();
                     }
                     tabOrder.recomputeChangedAsync();
+                    scoreboardManager.refreshAll();
                 }
             }
         }, this);
@@ -115,6 +123,12 @@ public final class AnarchyTags extends JavaPlugin {
         }
         if (preferenceWatcher != null) {
             preferenceWatcher.stop();
+        }
+        if (scoreboardUpdateTask != null) {
+            scoreboardUpdateTask.stop();
+        }
+        if (scoreboardManager != null) {
+            scoreboardManager.clearAll();
         }
         if (nametagManager != null) {
             nametagManager.removeAll();
@@ -132,15 +146,19 @@ public final class AnarchyTags extends JavaPlugin {
         try {
             reloadConfig();
             config.reload();
-            TagsPlayerConfig.register(this, config.getNametagConfig());
+            TagsPlayerConfig.register(this, config.getNametagConfig(), config.getScoreboardConfig());
             nametagScheduler.stop();
             preferenceWatcher.stop();
+            scoreboardUpdateTask.stop();
+            scoreboardManager.clearAll();
             nametagManager.removeAll();
             if (config.getNametagConfig().isEnabled()) {
                 nametagManager.createAll();
                 nametagScheduler.start();
                 preferenceWatcher.start();
             }
+            scoreboardUpdateTask.start();
+            scoreboardManager.refreshAll();
             VoiceChatBridge.refreshAllVoiceIcons();
             return true;
         } catch (Exception e) {
@@ -167,6 +185,14 @@ public final class AnarchyTags extends JavaPlugin {
 
     public PlayerConfigPreferenceWatcher getPreferenceWatcher() {
         return preferenceWatcher;
+    }
+
+    public ScoreboardManager getScoreboardManager() {
+        return scoreboardManager;
+    }
+
+    public ScoreboardUpdateTask getScoreboardUpdateTask() {
+        return scoreboardUpdateTask;
     }
 
     public NickHideManager getNickHideManager() {

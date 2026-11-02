@@ -41,6 +41,7 @@ public class NametagConfig {
     private String voiceChatTalking;
     private String voiceChatWhispering;
     private String voiceChatQuiet;
+    private String voiceChatGroup;
     private String voiceChatDisabled;
     private String voiceChatNotInstalled;
     private int voiceChatTalkTimeoutMs;
@@ -102,6 +103,7 @@ public class NametagConfig {
         voiceChatTalking = config.getString("voice-chat.talking", DEFAULT_TALKING_HEAD);
         voiceChatWhispering = config.getString("voice-chat.whispering", "🔉 ");
         voiceChatQuiet = config.getString("voice-chat.quiet", "");
+        voiceChatGroup = config.getString("voice-chat.group", " 👥");
         voiceChatDisabled = config.getString("voice-chat.disabled", "❌ ");
         voiceChatNotInstalled = config.getString("voice-chat.not-installed", "");
         voiceChatTalkTimeoutMs = Math.max(100, config.getInt("voice-chat.talk-timeout-ms", 350));
@@ -221,6 +223,10 @@ public class NametagConfig {
 
     public String getVoiceChatQuiet() {
         return voiceChatQuiet;
+    }
+
+    public String getVoiceChatGroup() {
+        return voiceChatGroup;
     }
 
     public String getVoiceChatDisabled() {

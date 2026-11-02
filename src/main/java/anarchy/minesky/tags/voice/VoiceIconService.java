@@ -29,6 +29,7 @@ public final class VoiceIconService {
             case TALKING -> config.getVoiceChatTalking();
             case WHISPERING -> config.getVoiceChatWhispering();
             case QUIET -> config.getVoiceChatQuiet();
+            case GROUP -> config.getVoiceChatGroup();
             case DISABLED -> config.getVoiceChatDisabled();
             case NOT_INSTALLED -> config.getVoiceChatNotInstalled();
         };
