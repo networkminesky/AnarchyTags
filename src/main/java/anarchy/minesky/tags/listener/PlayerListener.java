@@ -40,7 +40,11 @@ public class PlayerListener implements Listener {
         nametagManager.scheduleJoin(player);
         preferenceWatcher.seed(player);
         if (plugin.config().getScoreboardConfig().isEnabled()) {
-            plugin.getScoreboardUpdateTask().seed(player);
+            FoliaTasks.runOnEntityDelayed(plugin, player, () -> {
+                if (player.isOnline()) {
+                    plugin.getScoreboardUpdateTask().seed(player);
+                }
+            }, 2L);
         }
     }
 
