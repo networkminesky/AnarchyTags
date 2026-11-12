@@ -42,16 +42,30 @@ public final class EsconderNickCommand implements CommandExecutor, TabCompleter 
                 player.sendMessage(Component.text("Desative o modo invisível antes de ofuscar.", NamedTextColor.RED));
                 return true;
             }
-            plugin.getNickHideManager().toggleObfuscated(player);
-            boolean on = plugin.getNickHideManager().getMode(player) == NickHideMode.OBFUSCATED;
-            player.sendMessage(on
-                    ? Component.text("Nick ofuscado ativado (skin Steve, prefixo/economia/clãs mantidos).", NamedTextColor.GREEN)
-                    : Component.text("Nick ofuscado desativado — skin restaurada.", NamedTextColor.YELLOW));
+            var result = plugin.getNickHideManager().toggleObfuscated(player);
+            player.sendMessage(switch (result) {
+                case ENABLED -> Component.text(
+                        "Nick ofuscado ativado: só o nick aparece (&k). Prefixo, dinheiro e clã ocultos."
+                                + remainingSuffix(player),
+                        NamedTextColor.GREEN);
+                case DISABLED -> Component.text(
+                        "Nick ofuscado desativado — skin restaurada." + remainingSuffix(player),
+                        NamedTextColor.YELLOW);
+                case QUOTA_EXHAUSTED -> Component.text(
+                        "Você já usou o tempo de nick ofuscado de hoje.",
+                        NamedTextColor.RED);
+                case FULL_HIDDEN -> Component.text("Desative o modo invisível antes de ofuscar.", NamedTextColor.RED);
+                case DENIED -> Component.text("Não foi possível alterar o nick ofuscado.", NamedTextColor.RED);
+            });
             return true;
         }
 
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (sub.equals("habilitar")) {
+            if (sender.hasPermission(NickHideManager.PERM_INVISIBLE)) {
+                player.sendMessage(Component.text("Sem permissão para esse modo.", NamedTextColor.RED));
+                return true;
+            }
             boolean enabled = plugin.getNickHideManager().toggleNickLine(player);
             player.sendMessage(enabled
                     ? Component.text("Linha do nick na tag habilitada.", NamedTextColor.GREEN)
@@ -101,10 +115,10 @@ public final class EsconderNickCommand implements CommandExecutor, TabCompleter 
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> options = new ArrayList<>();
-            options.add("habilitar");
             if (sender.hasPermission(NickHideManager.PERM_INVISIBLE)
                     || sender.hasPermission(NickHideManager.PERM_INVISIBLE_OTHERS)) {
                 options.add("invisivel");
+                options.add("habilitar");
             }
             String prefix = args[0].toLowerCase(Locale.ROOT);
             return options.stream().filter(o -> o.startsWith(prefix)).toList();
@@ -120,5 +134,12 @@ public final class EsconderNickCommand implements CommandExecutor, TabCompleter 
                     .toList();
         }
         return List.of();
+    }
+
+    private String remainingSuffix(Player player) {
+        if (plugin.getNickHideManager().isUnlimited(player)) {
+            return "";
+        }
+        return " Restam " + NickHideManager.formatDuration(plugin.getNickHideManager().remainingMillis(player)) + " hoje.";
     }
 }

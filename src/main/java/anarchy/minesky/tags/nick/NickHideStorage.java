@@ -60,12 +60,10 @@ final class NickHideStorage {
         String base = "players." + playerId;
         if (mode == null || mode == NickHideMode.OFF) {
             yaml.set(base + ".mode", null);
-            if (!yaml.contains(base + ".nick-line")) {
-                yaml.set(base, null);
-            }
         } else {
             yaml.set(base + ".mode", mode.configId());
         }
+        pruneIfEmpty(base);
         saveQuietly();
     }
 
@@ -76,13 +74,57 @@ final class NickHideStorage {
         String base = "players." + playerId;
         if (enabled) {
             yaml.set(base + ".nick-line", null);
-            if (!yaml.contains(base + ".mode")) {
-                yaml.set(base, null);
-            }
         } else {
             yaml.set(base + ".nick-line", false);
         }
+        pruneIfEmpty(base);
         saveQuietly();
+    }
+
+    QuotaSnapshot readQuota(UUID playerId) {
+        if (yaml == null || playerId == null) {
+            return QuotaSnapshot.empty();
+        }
+        String base = "players." + playerId;
+        return new QuotaSnapshot(
+                yaml.getString(base + ".quota-day", ""),
+                yaml.getLong(base + ".used-millis", 0L),
+                yaml.getBoolean(base + ".warn-90", false)
+        );
+    }
+
+    void writeQuota(UUID playerId, QuotaSnapshot snapshot) {
+        if (yaml == null) {
+            yaml = new YamlConfiguration();
+        }
+        if (playerId == null) {
+            return;
+        }
+        String base = "players." + playerId;
+        if (snapshot == null || snapshot.isEmpty()) {
+            yaml.set(base + ".quota-day", null);
+            yaml.set(base + ".used-millis", null);
+            yaml.set(base + ".warn-90", null);
+        } else {
+            yaml.set(base + ".quota-day", snapshot.day());
+            yaml.set(base + ".used-millis", snapshot.usedMillis());
+            yaml.set(base + ".warn-90", snapshot.warned() ? true : null);
+        }
+        pruneIfEmpty(base);
+        saveQuietly();
+    }
+
+    private void pruneIfEmpty(String base) {
+        if (yaml.getConfigurationSection(base) == null) {
+            return;
+        }
+        if (!yaml.contains(base + ".mode")
+                && !yaml.contains(base + ".nick-line")
+                && !yaml.contains(base + ".quota-day")
+                && !yaml.contains(base + ".used-millis")
+                && !yaml.contains(base + ".warn-90")) {
+            yaml.set(base, null);
+        }
     }
 
     private void saveQuietly() {
@@ -95,6 +137,16 @@ final class NickHideStorage {
             if (plugin != null) {
                 plugin.getLogger().warning("Não foi possível salvar nick-hide.yml: " + e.getMessage());
             }
+        }
+    }
+
+    record QuotaSnapshot(String day, long usedMillis, boolean warned) {
+        static QuotaSnapshot empty() {
+            return new QuotaSnapshot("", 0L, false);
+        }
+
+        boolean isEmpty() {
+            return (day == null || day.isBlank()) && usedMillis <= 0 && !warned;
         }
     }
 }

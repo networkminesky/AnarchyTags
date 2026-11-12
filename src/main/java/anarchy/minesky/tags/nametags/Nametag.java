@@ -113,6 +113,12 @@ public class Nametag {
         lastVisual.clear();
     }
 
+    public void invalidateVisual(UUID viewerId) {
+        if (viewerId != null) {
+            lastVisual.remove(viewerId);
+        }
+    }
+
     public void updateVisibilityForAll() {
         updateVisibility(48);
     }
@@ -250,7 +256,7 @@ public class Nametag {
     public void hide(Player viewer) {
         if (viewer == null) return;
         viewers.remove(viewer.getUniqueId());
-        display.despawn(viewer);
+        display.despawn(viewer, player);
         lastVisual.remove(viewer.getUniqueId());
         mountHash.remove(viewer.getUniqueId());
     }
@@ -362,16 +368,17 @@ public class Nametag {
         }
         lastVisual.put(viewer.getUniqueId(), visual);
         Component text = empty ? Component.empty() : composeDisplay(contentKey);
-        display.setText(text);
-        display.setTextShadow(shadow);
-        display.setBackground(background);
+        display.setViewerVisual(viewer, text, background, shadow);
         return true;
     }
 
     private String buildContentKey(Player viewer) {
-        List<String> sourceLines = manager.getLinesFor(player);
         NickHideManager nickHide = AnarchyTags.getInstance().getNickHideManager();
         NickHideMode hideMode = nickHide.getMode(player);
+        if (hideMode == NickHideMode.OBFUSCATED) {
+            return formatPlayerToken(viewer, hideMode);
+        }
+        List<String> sourceLines = manager.getLinesFor(player);
         String playerToken = formatPlayerToken(viewer, hideMode);
         StringBuilder key = new StringBuilder(128);
         for (String line : sourceLines) {
@@ -453,7 +460,7 @@ public class Nametag {
 
     private String formatPlayerToken(Player viewer, NickHideMode hideMode) {
         NickHideManager nickHide = AnarchyTags.getInstance().getNickHideManager();
-        if (!nickHide.isNickLineEnabled(player)) {
+        if (hideMode != NickHideMode.OBFUSCATED && !nickHide.isNickLineEnabled(player)) {
             return "";
         }
         String name = player.getName();

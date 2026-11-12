@@ -3,6 +3,7 @@ package anarchy.minesky.tags.sorting;
 import anarchy.minesky.tags.AnarchyTags;
 import anarchy.minesky.tags.config.NametagConfig;
 import anarchy.minesky.tags.hook.LuckPermsHook;
+import anarchy.minesky.tags.nick.NickHideMode;
 import anarchy.minesky.tags.util.FoliaTasks;
 import anarchy.minesky.tags.debug.PacketMetrics;
 import anarchy.minesky.tags.utils.ComponentUtils;
@@ -192,7 +193,8 @@ public final class TabOrder {
         NametagConfig config = plugin.config().getNametagConfig();
         Component prefix = Component.empty();
         Component suffix = Component.empty();
-        if (config.isSortingApplyPrefix()) {
+        boolean obfuscated = plugin.getNickHideManager().getMode(target) == NickHideMode.OBFUSCATED;
+        if (config.isSortingApplyPrefix() && !obfuscated) {
             prefix = ComponentUtils.format(PlaceholderHelper.apply(viewer, target, config.getSortingPrefix()));
             suffix = ComponentUtils.format(PlaceholderHelper.apply(viewer, target, config.getSortingSuffix()));
         }

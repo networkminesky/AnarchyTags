@@ -86,12 +86,21 @@ public final class ScoreboardManager {
         ScoreboardPacketHandler.discard(id);
     }
 
-    public void clearAll() {
+    /**
+     * Remove a sidebar no cliente. Um CREATE depois sem este REMOVE derruba com protocol error.
+     */
+    public void unloadAll() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            remove(player);
+            presentQueued.remove(player.getUniqueId());
+            lastHash.remove(player.getUniqueId());
+            ScoreboardPacketHandler.clear(player);
         }
         lastHash.clear();
-        ScoreboardPacketHandler.resetAll();
+        presentQueued.clear();
+    }
+
+    public void clearAll() {
+        unloadAll();
     }
 
     private void applyOnEntity(Player player) {

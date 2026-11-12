@@ -56,6 +56,7 @@ public final class AnarchyTags extends JavaPlugin {
         scoreboardManager = new ScoreboardManager(this);
         scoreboardUpdateTask = new ScoreboardUpdateTask(this, scoreboardManager);
         nickHideManager = new NickHideManager(this);
+        nickHideManager.start();
         passengerMountListener = new PassengerMountListener(nametagManager);
         PacketEvents.getAPI().getEventManager().registerListener(passengerMountListener);
         VoicePlaceholderHook.register();
@@ -127,8 +128,11 @@ public final class AnarchyTags extends JavaPlugin {
         if (scoreboardUpdateTask != null) {
             scoreboardUpdateTask.stop();
         }
+        if (nickHideManager != null) {
+            nickHideManager.stop();
+        }
         if (scoreboardManager != null) {
-            scoreboardManager.clearAll();
+            scoreboardManager.unloadAll();
         }
         if (nametagManager != null) {
             nametagManager.removeAll();
@@ -139,6 +143,8 @@ public final class AnarchyTags extends JavaPlugin {
         }
         VoiceChatBridge.shutdown();
         VoicePlaceholderHook.unregister();
+        getServer().getServicesManager().unregisterAll(this);
+        instance = null;
         getLogger().info("AnarchyTags desativado.");
     }
 
@@ -150,15 +156,21 @@ public final class AnarchyTags extends JavaPlugin {
             nametagScheduler.stop();
             preferenceWatcher.stop();
             scoreboardUpdateTask.stop();
-            scoreboardManager.clearAll();
-            nametagManager.removeAll();
+
             if (config.getNametagConfig().isEnabled()) {
-                nametagManager.createAll();
+                nametagManager.reloadOnline();
                 nametagScheduler.start();
                 preferenceWatcher.start();
+            } else {
+                nametagManager.removeAll();
             }
+
             scoreboardUpdateTask.start();
-            scoreboardManager.refreshAll();
+            if (config.getScoreboardConfig().isEnabled()) {
+                scoreboardManager.refreshAll();
+            } else {
+                scoreboardManager.unloadAll();
+            }
             VoiceChatBridge.refreshAllVoiceIcons();
             return true;
         } catch (Exception e) {

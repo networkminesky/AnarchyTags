@@ -8,6 +8,11 @@ import net.luckperms.api.node.types.InheritanceNode;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 public final class LuckPermsHook {
@@ -60,6 +65,40 @@ public final class LuckPermsHook {
     public static String primaryGroup(UUID uuid) {
         User user = user(uuid);
         return user == null ? "" : user.getPrimaryGroup();
+    }
+
+    public static Set<String> inheritedGroupNames(Player player) {
+        return player == null ? Set.of() : inheritedGroupNames(player.getUniqueId());
+    }
+
+    public static Set<String> inheritedGroupNames(UUID uuid) {
+        User user = user(uuid);
+        LuckPerms luckPerms = resolve();
+        if (user == null || luckPerms == null) {
+            return Set.of();
+        }
+        Set<String> seen = new HashSet<>();
+        Deque<String> queue = new ArrayDeque<>();
+        if (user.getPrimaryGroup() != null && !user.getPrimaryGroup().isBlank()) {
+            queue.add(user.getPrimaryGroup());
+        }
+        for (InheritanceNode node : user.getNodes(NodeType.INHERITANCE)) {
+            queue.add(node.getGroupName());
+        }
+        while (!queue.isEmpty()) {
+            String name = queue.poll();
+            if (name == null || name.isBlank() || !seen.add(name.toLowerCase(Locale.ROOT))) {
+                continue;
+            }
+            Group group = luckPerms.getGroupManager().getGroup(name);
+            if (group == null) {
+                continue;
+            }
+            for (InheritanceNode node : group.getNodes(NodeType.INHERITANCE)) {
+                queue.add(node.getGroupName());
+            }
+        }
+        return seen;
     }
 
     private static User user(UUID uuid) {

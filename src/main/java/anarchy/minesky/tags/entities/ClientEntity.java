@@ -22,9 +22,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientEntity {
+
+    /** Longe dos entity ids vanilla (sequenciais) para não colidir no cliente. */
+    private static final AtomicInteger NEXT_FAKE_ID = new AtomicInteger(1_800_000_000);
 
     private final int entityId;
     private final UUID uuid;
@@ -33,7 +36,7 @@ public class ClientEntity {
     private final Set<UUID> spawnedFor = ConcurrentHashMap.newKeySet();
 
     public ClientEntity(EntityType type, Location location) {
-        this.entityId = ThreadLocalRandom.current().nextInt(1_000_000, 2_000_000);
+        this.entityId = NEXT_FAKE_ID.getAndIncrement();
         this.uuid = UUID.randomUUID();
         this.type = mapEntityType(type);
         this.location = location.clone();
@@ -82,8 +85,16 @@ public class ClientEntity {
     }
 
     public void despawn(Player viewer) {
-        if (!spawnedFor.remove(viewer.getUniqueId())) {
+        despawn(viewer, null);
+    }
+
+    public void despawn(Player viewer, Entity vehicle) {
+        if (viewer == null || !spawnedFor.remove(viewer.getUniqueId())) {
             return;
+        }
+        // Tira o display da lista de passageiros antes do destroy — senão o cliente toma protocol error.
+        if (vehicle != null) {
+            sendRealPassengers(vehicle, viewer);
         }
         sendDestroy(viewer);
     }
@@ -117,6 +128,15 @@ public class ClientEntity {
         }
         ids[passengers.size()] = entityId;
         // Só pacote SetPassengers. Não usa Entity.startRiding / addPassenger (NMS).
+        sendDisplayPacket(new WrapperPlayServerSetPassengers(entity.getEntityId(), ids), viewer, PacketKind.MOUNT);
+    }
+
+    private void sendRealPassengers(Entity entity, Player viewer) {
+        java.util.List<Entity> passengers = entity.getPassengers();
+        int[] ids = new int[passengers.size()];
+        for (int i = 0; i < passengers.size(); i++) {
+            ids[i] = passengers.get(i).getEntityId();
+        }
         sendDisplayPacket(new WrapperPlayServerSetPassengers(entity.getEntityId(), ids), viewer, PacketKind.MOUNT);
     }
 

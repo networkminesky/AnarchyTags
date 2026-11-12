@@ -4,7 +4,7 @@ import java.util.Locale;
 
 public enum NickHideMode {
     OFF,
-    /** Tag visível com nick ofuscado (&k); prefixo PAPI / economia / clãs permanecem. */
+    /** Tag visível só com o nick ofuscado (&k); prefixo, dinheiro e clã ocultos. */
     OBFUSCATED,
     /** Tag totalmente invisível (admins). */
     FULL_HIDDEN;

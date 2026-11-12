@@ -12,16 +12,19 @@ public class AnarchyTagsConfig {
     private final AnarchyTags plugin;
     private final NametagConfig nametagConfig;
     private final ScoreboardConfig scoreboardConfig;
+    private final NickHideConfig nickHideConfig;
 
     public AnarchyTagsConfig(AnarchyTags plugin) {
         this.plugin = plugin;
         this.nametagConfig = new NametagConfig(plugin);
         this.scoreboardConfig = new ScoreboardConfig(plugin);
+        this.nickHideConfig = new NickHideConfig(plugin);
     }
 
     public void load() {
         nametagConfig.load();
         scoreboardConfig.load();
+        nickHideConfig.load();
     }
 
     public void reload() throws IOException, InvalidConfigurationException {
@@ -30,6 +33,7 @@ public class AnarchyTagsConfig {
         config.load(file);
         nametagConfig.load(config);
         scoreboardConfig.load(config);
+        nickHideConfig.load(config);
     }
 
     public NametagConfig getNametagConfig() {
@@ -38,5 +42,9 @@ public class AnarchyTagsConfig {
 
     public ScoreboardConfig getScoreboardConfig() {
         return scoreboardConfig;
+    }
+
+    public NickHideConfig getNickHideConfig() {
+        return nickHideConfig;
     }
 }

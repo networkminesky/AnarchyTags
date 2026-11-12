@@ -20,7 +20,7 @@ permissions:
     description: Permite recarregar a configuração do AnarchyTags
     default: op
   anarchytags.nick.ofuscado:
-    description: Permite /escondernick (toggle nick ofuscado)
+    description: Permite /escondernick (nick ofuscado, cota diária)
     default: true
   anarchytags.nick.ofuscado.view:
     description: Vê nick em &8 de quem usa modo ofuscado

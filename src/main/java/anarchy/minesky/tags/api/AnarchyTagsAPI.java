@@ -45,7 +45,7 @@ public interface AnarchyTagsAPI {
     NickHideMode getNickHideMode(@NotNull Player player);
 
     /**
-     * Se a linha do nick ({@code {player}}) está habilitada na tag (prefixo / economia / clãs permanecem).
+     * Se a linha do nick ({@code {player}}) está habilitada na tag (prefixo / economia / clãs permanecem no modo normal).
      */
     boolean isNickLineEnabled(@NotNull Player player);
 

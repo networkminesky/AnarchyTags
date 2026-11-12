@@ -311,15 +311,46 @@ public class NametagManager implements AnarchyTagsAPI {
         }
     }
 
-    public void removeAll() {
-        for (Player online : new ArrayList<>(Bukkit.getOnlinePlayers())) {
-            remove(online);
+    /** Recarrega config nas tags já spawnadas — sem destroy/spawn (evita protocol error). */
+    public void reloadOnline() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.isOnline()) {
+                continue;
+            }
+            if (!nametags.containsKey(player.getUniqueId())) {
+                scheduleJoin(player);
+                continue;
+            }
+            FoliaTasks.runOnEntity(AnarchyTags.getInstance(), player, () -> {
+                Nametag tag = nametags.get(player.getUniqueId());
+                if (tag == null || !player.isOnline()) {
+                    return;
+                }
+                tag.invalidateVisuals();
+                tag.updateVisibility(Integer.MAX_VALUE / 4);
+                tag.forceRefreshAllViewerTexts();
+                tag.updateSeeThrough();
+                tabOrder.recompute(player);
+                tabOrder.beginFullSync(player);
+            });
         }
+    }
+
+    public void removeAll() {
+        List<Nametag> tags = new ArrayList<>(nametags.values());
         nametags.clear();
-        tabOrder.reset();
-        NametagHandler.reset();
         viewerReady.clear();
         packetsAfterMs.clear();
+        ownerByEntityId.clear();
+        for (Nametag tag : tags) {
+            Player owner = tag.getPlayer();
+            tag.hideForAll();
+            if (owner != null && owner.isOnline()) {
+                NametagHandler.clearTarget(owner);
+            }
+        }
+        tabOrder.reset();
+        NametagHandler.reset();
     }
 
     public boolean passesExternalVisibility(Player viewer, Player target) {

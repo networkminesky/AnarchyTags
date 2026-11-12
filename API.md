@@ -142,7 +142,7 @@ Retorna o modo persistido de esconder nick:
 | Valor | Significado |
 |--------|-------------|
 | `OFF` | Normal |
-| `OBFUSCATED` | Ofuscado (`/escondernick`) |
+| `OBFUSCATED` | Ofuscado (`/escondernick`): só o nick `&k`, sem prefixo/dinheiro/clã |
 | `FULL_HIDDEN` | Tag oculta (`/escondernick invisivel`) |
 
 ```java
@@ -156,7 +156,7 @@ if (mode == NickHideMode.FULL_HIDDEN) { ... }
 
 ### `isNickLineEnabled(Player player)`
 
-Se a linha `{player}` na tag está ativa. Quando `false` (via `/escondernick habilitar`), prefixo LuckPerms, economia e clãs **permanecem**; só o nome some.
+Se a linha `{player}` na tag está ativa. Quando `false` (via `/escondernick habilitar`), prefixo LuckPerms, economia e clãs **permanecem**; só o nome some. No modo ofuscado (`/escondernick`) a tag mostra **apenas** o nick `&k`.
 
 ```java
 if (!api.isNickLineEnabled(player)) { ... }

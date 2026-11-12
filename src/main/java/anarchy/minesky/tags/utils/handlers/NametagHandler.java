@@ -62,8 +62,7 @@ public final class NametagHandler {
             send(new WrapperPlayServerTeams(
                     current.team,
                     WrapperPlayServerTeams.TeamMode.REMOVE,
-                    (WrapperPlayServerTeams.ScoreBoardTeamInfo) null,
-                    target.getName()
+                    (WrapperPlayServerTeams.ScoreBoardTeamInfo) null
             ), viewer);
         }
         if (current == null || !current.team.equals(team)) {
@@ -107,7 +106,6 @@ public final class NametagHandler {
         if (viewers == null || viewers.isEmpty()) {
             return;
         }
-        String name = target.getName();
         UUID targetId = target.getUniqueId();
         for (Map.Entry<UUID, Sent> entry : viewers.entrySet()) {
             Map<UUID, Sent> viewerTeams = byViewer.get(entry.getKey());
@@ -121,8 +119,7 @@ public final class NametagHandler {
             send(new WrapperPlayServerTeams(
                     entry.getValue().team,
                     WrapperPlayServerTeams.TeamMode.REMOVE,
-                    (WrapperPlayServerTeams.ScoreBoardTeamInfo) null,
-                    name
+                    (WrapperPlayServerTeams.ScoreBoardTeamInfo) null
             ), viewer);
         }
     }
