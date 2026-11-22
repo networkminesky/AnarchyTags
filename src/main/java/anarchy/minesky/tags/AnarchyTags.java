@@ -4,6 +4,7 @@ import anarchy.minesky.tags.api.AnarchyTagsAPI;
 import anarchy.minesky.tags.command.AnarchyTagsCommand;
 import anarchy.minesky.tags.command.EsconderNickCommand;
 import anarchy.minesky.tags.config.AnarchyTagsConfig;
+import anarchy.minesky.tags.hook.TagPlaceholder;
 import anarchy.minesky.tags.hook.TagsPlayerConfig;
 import anarchy.minesky.tags.hook.VoiceChatBridge;
 import anarchy.minesky.tags.hook.VoicePlaceholderHook;
@@ -18,6 +19,7 @@ import anarchy.minesky.tags.scoreboard.ScoreboardManager;
 import anarchy.minesky.tags.scoreboard.ScoreboardUpdateTask;
 import anarchy.minesky.tags.sorting.TabOrder;
 import anarchy.minesky.tags.utils.helpers.DependencyHelper;
+
 import com.github.retrooper.packetevents.PacketEvents;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -40,6 +42,7 @@ public final class AnarchyTags extends JavaPlugin {
     private ScoreboardUpdateTask scoreboardUpdateTask;
     private NickHideManager nickHideManager;
     private PassengerMountListener passengerMountListener;
+    private TagPlaceholder tagPlaceholder;
 
     @Override
     public void onEnable() {
@@ -59,6 +62,7 @@ public final class AnarchyTags extends JavaPlugin {
         nickHideManager.start();
         passengerMountListener = new PassengerMountListener(nametagManager);
         PacketEvents.getAPI().getEventManager().registerListener(passengerMountListener);
+        registerTagPlaceholder();
         VoicePlaceholderHook.register();
         nametagScheduler.start();
         preferenceWatcher.start();
@@ -96,6 +100,7 @@ public final class AnarchyTags extends JavaPlugin {
             public void onPluginEnable(PluginEnableEvent event) {
                 String name = event.getPlugin().getName();
                 if ("PlaceholderAPI".equals(name)) {
+                    registerTagPlaceholder();
                     VoicePlaceholderHook.register();
                 }
                 if ("voicechat".equalsIgnoreCase(name) || "VoiceChatPlaceholders".equalsIgnoreCase(name)) {
@@ -115,6 +120,19 @@ public final class AnarchyTags extends JavaPlugin {
         }, this);
 
         getLogger().info("AnarchyTags v" + getPluginMeta().getVersion() + " (DisplayTags-style / Folia 26.3) ativado.");
+    }
+
+    private void registerTagPlaceholder() {
+        if (!getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        if (tagPlaceholder == null) {
+            tagPlaceholder = new TagPlaceholder(this);
+        }
+        if (!tagPlaceholder.isRegistered()) {
+        	boolean ok = tagPlaceholder.register();
+         	getLogger().info("TagPlaceholder (%anarchytags_playtime%) register() = " + ok);
+        }
     }
 
     @Override
@@ -143,9 +161,15 @@ public final class AnarchyTags extends JavaPlugin {
         }
         VoiceChatBridge.shutdown();
         VoicePlaceholderHook.unregister();
+        if (tagPlaceholder != null) {
+            if (tagPlaceholder.isRegistered()) {
+                tagPlaceholder.unregister();
+            }
+            tagPlaceholder = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         instance = null;
-        getLogger().info("AnarchyTags desativado.");
+        getLogger().info("AnarchyTags desabilitado.");
     }
 
     public boolean reloadPlugin() {

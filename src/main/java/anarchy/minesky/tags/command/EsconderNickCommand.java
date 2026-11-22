@@ -62,7 +62,7 @@ public final class EsconderNickCommand implements CommandExecutor, TabCompleter 
 
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (sub.equals("habilitar")) {
-            if (sender.hasPermission(NickHideManager.PERM_INVISIBLE)) {
+            if (!sender.hasPermission(NickHideManager.PERM_INVISIBLE)) {
                 player.sendMessage(Component.text("Sem permissão para esse modo.", NamedTextColor.RED));
                 return true;
             }
