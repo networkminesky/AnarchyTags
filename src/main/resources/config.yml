@@ -47,6 +47,9 @@ nametags:
       y: 0.20
       z: 0
 
+    # Y extra na translation só para quem vê (cliente Bedrock / Floodgate). 0 desativa o ajuste.
+    bedrock-translation-y: 0.3
+
     scale:
       x: 1
       y: 1

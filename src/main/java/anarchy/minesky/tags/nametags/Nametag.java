@@ -8,6 +8,7 @@ import anarchy.minesky.tags.hook.TagsPlayerConfig;
 import anarchy.minesky.tags.hook.VoiceChatBridge;
 import anarchy.minesky.tags.nick.NickHideManager;
 import anarchy.minesky.tags.nick.NickHideMode;
+import anarchy.minesky.tags.util.BedrockUtil;
 import anarchy.minesky.tags.util.VanishUtil;
 import anarchy.minesky.tags.utils.ComponentUtils;
 import anarchy.minesky.tags.utils.helpers.PlaceholderHelper;
@@ -19,6 +20,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +60,7 @@ public class Nametag {
         // Inicia a localização já na altura dos olhos para evitar spawn no pé
         Location spawnLoc = player.getLocation().clone().add(0, 1.8, 0);
         this.display = new ClientTextDisplay(spawnLoc);
-        this.display.setTranslation(new Vector3f(
+        this.display.setDefaultTranslation(new Vector3f(
                 (float) config.getTranslation().getX(),
                 (float) config.getTranslation().getY(),
                 (float) config.getTranslation().getZ()
@@ -361,7 +363,8 @@ public class Nametag {
         boolean shadow = TagsPlayerConfig.nametagTextShadowEnabled(viewer, serverConfig.hasTextShadow());
         boolean empty = contentKey.isEmpty();
         int background = empty ? 0 : resolveBackgroundForViewer(viewer, serverConfig, Component.text("x"));
-        Visual visual = new Visual(contentKey, shadow, background);
+        float translationY = resolveTranslationY(viewer, serverConfig);
+        Visual visual = new Visual(contentKey, shadow, background, translationY);
         Visual previous = lastVisual.get(viewer.getUniqueId());
         if (visual.equals(previous)) {
             return false;
@@ -369,7 +372,25 @@ public class Nametag {
         lastVisual.put(viewer.getUniqueId(), visual);
         Component text = empty ? Component.empty() : composeDisplay(contentKey);
         display.setViewerVisual(viewer, text, background, shadow);
+        display.setViewerTranslation(viewer, resolveTranslation(viewer, serverConfig));
         return true;
+    }
+
+    private Vector3f resolveTranslation(Player viewer, NametagConfig config) {
+        Vector base = config.getTranslation();
+        return new Vector3f(
+                (float) base.getX(),
+                resolveTranslationY(viewer, config),
+                (float) base.getZ()
+        );
+    }
+
+    private float resolveTranslationY(Player viewer, NametagConfig config) {
+        double y = config.getTranslation().getY();
+        if (BedrockUtil.isMathematicallyBedrock(viewer.getUniqueId())) {
+            y += config.getBedrockTranslationY();
+        }
+        return (float) y;
     }
 
     private String buildContentKey(Player viewer) {
@@ -456,7 +477,7 @@ public class Nametag {
         followAllViewers();
     }
 
-    private record Visual(String contentKey, boolean shadow, int background) {}
+    private record Visual(String contentKey, boolean shadow, int background, float translationY) {}
 
     private String formatPlayerToken(Player viewer, NickHideMode hideMode) {
         NickHideManager nickHide = AnarchyTags.getInstance().getNickHideManager();

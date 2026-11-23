@@ -25,6 +25,7 @@ public class NametagConfig {
     private String background;
     private DisplayBillboard billboard;
     private Vector translation;
+    private double bedrockTranslationY;
     private Vector scale;
     private boolean sortingEnabled;
     private int sortingInterval;
@@ -79,6 +80,7 @@ public class NametagConfig {
                 config.getDouble("nametags.display.translation.y", 0.08),
                 config.getDouble("nametags.display.translation.z", 0)
         );
+        bedrockTranslationY = config.getDouble("nametags.display.bedrock-translation-y", 0.5);
         scale = new Vector(
                 config.getDouble("nametags.display.scale.x", 1),
                 config.getDouble("nametags.display.scale.y", 1),
@@ -167,6 +169,10 @@ public class NametagConfig {
 
     public Vector getTranslation() {
         return translation;
+    }
+
+    public double getBedrockTranslationY() {
+        return bedrockTranslationY;
     }
 
     public Vector getScale() {

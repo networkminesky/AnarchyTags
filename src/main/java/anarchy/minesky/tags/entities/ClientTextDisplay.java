@@ -2,6 +2,7 @@ package anarchy.minesky.tags.entities;
 
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
+import com.github.retrooper.packetevents.util.Vector3f;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -18,10 +19,17 @@ public class ClientTextDisplay extends ClientDisplay {
     private Component text = Component.empty();
     private int background = TextDisplayDefaults.BACKGROUND;
     private int flags;
+    private Vector3f defaultTranslation;
     private final Map<UUID, ViewerVisual> viewerVisuals = new ConcurrentHashMap<>();
+    private final Map<UUID, Vector3f> viewerTranslations = new ConcurrentHashMap<>();
 
     public ClientTextDisplay(Location location) {
         super(EntityType.TEXT_DISPLAY, location);
+    }
+
+    public void setDefaultTranslation(Vector3f translation) {
+        this.defaultTranslation = translation;
+        setTranslation(translation);
     }
 
     public void setViewerVisual(Player viewer, Component text, int background, boolean shadow) {
@@ -33,6 +41,13 @@ public class ClientTextDisplay extends ClientDisplay {
                 background,
                 shadow
         ));
+    }
+
+    public void setViewerTranslation(Player viewer, Vector3f translation) {
+        if (viewer == null || translation == null) {
+            return;
+        }
+        viewerTranslations.put(viewer.getUniqueId(), translation);
     }
 
     public void setText(Component text) {
@@ -80,7 +95,9 @@ public class ClientTextDisplay extends ClientDisplay {
     @Override
     public void despawn(Player viewer, Entity vehicle) {
         if (viewer != null) {
-            viewerVisuals.remove(viewer.getUniqueId());
+            UUID viewerId = viewer.getUniqueId();
+            viewerVisuals.remove(viewerId);
+            viewerTranslations.remove(viewerId);
         }
         super.despawn(viewer, vehicle);
     }
@@ -88,7 +105,9 @@ public class ClientTextDisplay extends ClientDisplay {
     @Override
     public void destroy(Player viewer) {
         if (viewer != null) {
-            viewerVisuals.remove(viewer.getUniqueId());
+            UUID viewerId = viewer.getUniqueId();
+            viewerVisuals.remove(viewerId);
+            viewerTranslations.remove(viewerId);
         }
         super.destroy(viewer);
     }
@@ -97,6 +116,7 @@ public class ClientTextDisplay extends ClientDisplay {
     public void forget(UUID viewerId) {
         if (viewerId != null) {
             viewerVisuals.remove(viewerId);
+            viewerTranslations.remove(viewerId);
         }
         super.forget(viewerId);
     }
@@ -114,6 +134,13 @@ public class ClientTextDisplay extends ClientDisplay {
     private void applyViewerVisual(Player viewer) {
         if (viewer == null) {
             return;
+        }
+        Vector3f translation = viewerTranslations.get(viewer.getUniqueId());
+        if (translation == null) {
+            translation = defaultTranslation;
+        }
+        if (translation != null) {
+            setTranslation(translation);
         }
         ViewerVisual visual = viewerVisuals.get(viewer.getUniqueId());
         if (visual == null) {
